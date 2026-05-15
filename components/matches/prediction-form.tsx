@@ -1,0 +1,256 @@
+"use client";
+
+import type { FormEvent } from "react";
+import { useState, useTransition } from "react";
+import { CardsEdge, CardsRange, MatchStatus, PredictionOutcome } from "@prisma/client";
+import { Flag } from "@/components/ui/flag";
+import { playerPositionShortLabels } from "@/lib/constants";
+import type { MatchCardData } from "@/types/app";
+
+const outcomes = [
+  { value: PredictionOutcome.HOME_WIN, label: "Time A vence" },
+  { value: PredictionOutcome.DRAW, label: "Empate" },
+  { value: PredictionOutcome.AWAY_WIN, label: "Time B vence" }
+];
+
+const cardsEdges = [
+  { value: CardsEdge.HOME, label: "Time A" },
+  { value: CardsEdge.AWAY, label: "Time B" },
+  { value: CardsEdge.EQUAL, label: "Igual" }
+];
+
+const cardsRanges = [
+  { value: CardsRange.ZERO, label: "0" },
+  { value: CardsRange.ONE_TWO, label: "1-2" },
+  { value: CardsRange.THREE_FOUR, label: "3-4" },
+  { value: CardsRange.FIVE_PLUS, label: "5+" }
+];
+
+export function PredictionForm({ match }: { match: MatchCardData }) {
+  const [message, setMessage] = useState<string | null>(null);
+  const [hasSavedPrediction, setHasSavedPrediction] = useState(Boolean(match.prediction));
+  const [pending, startTransition] = useTransition();
+  const locked = match.status !== MatchStatus.SCHEDULED;
+  const hasPlayerCatalog = match.homePlayers.length > 0 || match.awayPlayers.length > 0;
+
+  const scorerGroups = [
+    {
+      label: `Time A · ${match.homeTeam}`,
+      options: match.homePlayers
+    },
+    {
+      label: `Time B · ${match.awayTeam}`,
+      options: match.awayPlayers
+    }
+  ].filter((group) => group.options.length > 0);
+
+  return (
+    <form
+      onSubmit={(event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        startTransition(async () => {
+          setMessage(null);
+
+          const response = await fetch("/api/predictions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              matchId: match.id,
+              outcome: formData.get("outcome"),
+              score: {
+                home: Number(formData.get("homeScore")),
+                away: Number(formData.get("awayScore"))
+              },
+              scorers: [formData.get("scorer1"), formData.get("scorer2")].filter(Boolean),
+              cardsEdge: formData.get("cardsEdge"),
+              cardsRange: formData.get("cardsRange")
+            })
+          });
+
+          const payload = await response.json();
+          if (response.ok) {
+            setHasSavedPrediction(true);
+            setMessage("Palpite salvo com sucesso. Voce ainda pode editar ate o lock.");
+            return;
+          }
+
+          setMessage(payload.error ?? "Erro ao salvar.");
+        });
+      }}
+      className="mt-4 grid gap-3"
+    >
+      <div className="grid gap-3 rounded-3xl border border-white/8 bg-white/5 p-4 sm:grid-cols-2">
+        <div className="flex items-center gap-3">
+          <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">
+            A
+          </span>
+          <Flag
+            countryCode={match.homeCountryCode}
+            fallbackLabel={match.homeCode}
+            alt={`Bandeira de ${match.homeTeam}`}
+            size={36}
+          />
+          <div>
+            <p className="text-sm font-semibold text-slate-100">{match.homeTeam}</p>
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+              {match.homeCode ?? "HOME"}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">
+            B
+          </span>
+          <Flag
+            countryCode={match.awayCountryCode}
+            fallbackLabel={match.awayCode}
+            alt={`Bandeira de ${match.awayTeam}`}
+            size={36}
+          />
+          <div>
+            <p className="text-sm font-semibold text-slate-100">{match.awayTeam}</p>
+            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+              {match.awayCode ?? "AWAY"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-3">
+        <select
+          name="outcome"
+          defaultValue={match.prediction?.outcome ?? PredictionOutcome.HOME_WIN}
+          disabled={locked || pending}
+          className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+        >
+          {outcomes.map((item) => (
+            <option key={item.value} value={item.value}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            name="homeScore"
+            type="number"
+            min={0}
+            max={20}
+            defaultValue={match.prediction?.score.home ?? 1}
+            disabled={locked || pending}
+            className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+          />
+          <input
+            name="awayScore"
+            type="number"
+            min={0}
+            max={20}
+            defaultValue={match.prediction?.score.away ?? 0}
+            disabled={locked || pending}
+            className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <select
+            name="scorer1"
+            defaultValue={match.prediction?.scorers[0] ?? ""}
+            disabled={locked || pending || !hasPlayerCatalog}
+            className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+          >
+            <option value="">Artilheiro 1</option>
+            {scorerGroups.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((player) => (
+                  <option key={player.id} value={player.name}>
+                    {player.name} · {playerPositionShortLabels[player.position]}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <select
+            name="scorer2"
+            defaultValue={match.prediction?.scorers[1] ?? ""}
+            disabled={locked || pending || !hasPlayerCatalog}
+            className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+          >
+            <option value="">Artilheiro 2</option>
+            {scorerGroups.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((player) => (
+                  <option key={player.id} value={player.name}>
+                    {player.name} · {playerPositionShortLabels[player.position]}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <select
+          name="cardsEdge"
+          defaultValue={match.prediction?.cardsEdge ?? CardsEdge.EQUAL}
+          disabled={locked || pending}
+          className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+        >
+          {cardsEdges.map((item) => (
+            <option key={item.value} value={item.value}>
+              Mais amarelos: {item.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          name="cardsRange"
+          defaultValue={match.prediction?.cardsRange ?? CardsRange.THREE_FOUR}
+          disabled={locked || pending}
+          className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+        >
+          {cardsRanges.map((item) => (
+            <option key={item.value} value={item.value}>
+              Faixa de cartoes: {item.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <p className="text-sm text-slate-300">
+            {locked
+              ? "Palpite travado automaticamente."
+              : "Os palpites fecham 2 horas antes do jogo."}
+          </p>
+          {!hasPlayerCatalog ? (
+            <p className="text-xs text-slate-500">
+              Lista de artilheiros libera quando as selecoes do jogo tiverem elenco cadastrado.
+            </p>
+          ) : null}
+        </div>
+        <button
+          type="submit"
+          disabled={locked || pending}
+          className="rounded-2xl bg-brand-400 px-5 py-3 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {locked
+            ? "Travado"
+            : pending
+              ? hasSavedPrediction
+                ? "Atualizando..."
+                : "Salvando..."
+              : hasSavedPrediction
+                ? "Editar palpite"
+                : "Salvar palpite"}
+        </button>
+      </div>
+
+      {message ? <p className="text-sm text-brand-100">{message}</p> : null}
+    </form>
+  );
+}

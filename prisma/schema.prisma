@@ -1,0 +1,393 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LOCKED
+  FINISHED
+}
+
+enum Phase {
+  GROUP_STAGE
+  ROUND_OF_32
+  ROUND_OF_16
+  QUARTER_FINAL
+  SEMI_FINAL
+  THIRD_PLACE
+  FINAL
+}
+
+enum PredictionOutcome {
+  HOME_WIN
+  DRAW
+  AWAY_WIN
+}
+
+enum CardsEdge {
+  HOME
+  AWAY
+  EQUAL
+}
+
+enum CardsRange {
+  ZERO
+  ONE_TWO
+  THREE_FOUR
+  FIVE_PLUS
+}
+
+enum FeedPostType {
+  AI_COMMENTARY
+  SYSTEM_EVENT
+  USER_POST
+}
+
+enum LeaderboardScope {
+  OVERALL
+  GROUP_STAGE
+  KNOCKOUT
+}
+
+enum PlayerTier {
+  LEGENDARY
+  GOOD
+  AVERAGE
+  POOR
+}
+
+enum PlayerPosition {
+  GOALKEEPER
+  DEFENDER
+  MIDFIELDER
+  FORWARD
+}
+
+enum NotificationType {
+  RANKING_CHANGE
+  COMMENT_RECEIVED
+  AI_MENTION
+  PICK_LOCK_REMINDER
+  ACCESS_APPROVED
+  ACCESS_PENDING
+  ACCESS_REJECTED
+}
+
+model User {
+  id               String           @id @default(cuid())
+  name             String?
+  username         String?          @unique
+  email            String?          @unique
+  emailVerified    DateTime?
+  image            String?
+  passwordHash     String?
+  role             Role             @default(USER)
+  approvalStatus   ApprovalStatus   @default(PENDING)
+  bio              String?
+  timezone         String           @default("America/Sao_Paulo")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  accounts         Account[]
+  sessions         Session[]
+  predictions      Prediction[]
+  feedPosts        FeedPost[]
+  comments         Comment[]
+  likes            Like[]
+  notifications    Notification[]
+  playerStatuses   PlayerStatus[]
+  leaderboardRows  Leaderboard[]
+  auditLogs        AuditLog[]       @relation("AuditActor")
+  rivalries        Rivalry[]        @relation("RivalryUser")
+  rivaledBy        Rivalry[]        @relation("RivalryTarget")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Team {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  countryCode  String?  @map("country_code") @db.VarChar(2)
+  name         String
+  shortName    String
+  groupKey     String?
+  seedNumber   Int?
+  flagEmoji    String?
+  isPlaceholder Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  homeMatches  Match[]  @relation("MatchHomeTeam")
+  awayMatches  Match[]  @relation("MatchAwayTeam")
+  players      Player[]
+}
+
+model Player {
+  id          String         @id @default(cuid())
+  teamId      String
+  slotNumber  Int
+  name        String
+  shortName   String
+  position    PlayerPosition
+  shirtNumber Int?
+  isOfficial  Boolean        @default(false)
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  team        Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, slotNumber])
+  @@index([teamId, isActive])
+  @@index([teamId, position])
+}
+
+model Match {
+  id                String        @id @default(cuid())
+  number            Int           @unique
+  slug              String        @unique
+  phase             Phase
+  groupKey          String?
+  startsAt          DateTime
+  lockAt            DateTime
+  venue             String?
+  city              String?
+  country           String?
+  status            MatchStatus   @default(SCHEDULED)
+  homeTeamId        String?
+  awayTeamId        String?
+  homePlaceholder   String?
+  awayPlaceholder   String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  homeTeam          Team?         @relation("MatchHomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam          Team?         @relation("MatchAwayTeam", fields: [awayTeamId], references: [id])
+  predictions       Prediction[]
+  result            MatchResult?
+  feedPosts         FeedPost[]
+
+  @@index([phase, startsAt])
+  @@index([status, lockAt])
+}
+
+model Prediction {
+  id               String             @id @default(cuid())
+  userId           String
+  matchId          String
+  outcome          PredictionOutcome
+  scoreId          String             @unique
+  scorers          String[]
+  cardsEdge        CardsEdge
+  cardsRange       CardsRange
+  points           Int                @default(0)
+  streakApplied    Int                @default(0)
+  multiplier       Float              @default(1)
+  isLockedSnapshot Boolean            @default(false)
+  evaluatedAt      DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match            Match              @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  score            Score              @relation("PredictionScore", fields: [scoreId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, matchId])
+  @@index([matchId])
+}
+
+model MatchResult {
+  id          String             @id @default(cuid())
+  matchId     String             @unique
+  outcome     PredictionOutcome
+  scoreId     String             @unique
+  scorers     String[]
+  cardsEdge   CardsEdge
+  cardsRange  CardsRange
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  finishedAt  DateTime?
+  match       Match              @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  score       Score              @relation("ResultScore", fields: [scoreId], references: [id], onDelete: Cascade)
+}
+
+model Score {
+  id             String       @id @default(cuid())
+  home           Int
+  away           Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  prediction     Prediction?  @relation("PredictionScore")
+  matchResult    MatchResult? @relation("ResultScore")
+}
+
+model Leaderboard {
+  id               String           @id @default(cuid())
+  userId           String
+  scope            LeaderboardScope
+  totalPoints      Int              @default(0)
+  exactScores      Int              @default(0)
+  correctWinners   Int              @default(0)
+  correctScorers   Int              @default(0)
+  rankPosition     Int              @default(0)
+  previousPosition Int?
+  movement         Int              @default(0)
+  pointsToNext     Int?
+  snapshotAt       DateTime         @default(now())
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([scope, rankPosition])
+  @@index([userId, scope])
+}
+
+model FeedPost {
+  id          String       @id @default(cuid())
+  type        FeedPostType
+  authorId    String?
+  matchId     String?
+  title       String?
+  content     String       @db.Text
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  author      User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  match       Match?       @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  comments    Comment[]
+  likes       Like[]
+
+  @@index([createdAt])
+}
+
+model Comment {
+  id          String    @id @default(cuid())
+  authorId    String
+  postId      String
+  parentId    String?
+  content     String    @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post        FeedPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent      Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[] @relation("CommentReplies")
+  likes       Like[]
+
+  @@index([postId, createdAt])
+}
+
+model Like {
+  id         String    @id @default(cuid())
+  userId     String
+  postId     String?
+  commentId  String?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post       FeedPost? @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment    Comment?  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@unique([userId, commentId])
+}
+
+model PlayerStatus {
+  id            String     @id @default(cuid())
+  userId        String
+  scope         LeaderboardScope
+  tier          PlayerTier
+  percentile    Float
+  rankPosition  Int
+  colorHex      String
+  createdAt     DateTime   @default(now())
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([scope, rankPosition])
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  type       NotificationType
+  title      String
+  body       String
+  href       String?
+  metadata   Json?
+  isRead     Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+}
+
+model AuditLog {
+  id         String    @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String
+  payload    Json?
+  createdAt  DateTime  @default(now())
+  actor      User?     @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model Rivalry {
+  id          String           @id @default(cuid())
+  userId      String
+  rivalUserId String
+  scope       LeaderboardScope @default(OVERALL)
+  score       Float            @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  user        User             @relation("RivalryUser", fields: [userId], references: [id], onDelete: Cascade)
+  rivalUser   User             @relation("RivalryTarget", fields: [rivalUserId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, scope])
+  @@index([rivalUserId, scope])
+  @@index([scope, score])
+}
