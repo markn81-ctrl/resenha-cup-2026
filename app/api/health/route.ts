@@ -18,13 +18,26 @@ function hasConfiguredValue(value: string | undefined) {
   ].some((placeholder) => normalized.includes(placeholder));
 }
 
+function hasValidHttpUrl(value: string | undefined) {
+  if (!hasConfiguredValue(value)) {
+    return false;
+  }
+
+  try {
+    const url = new URL(value!);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export async function GET() {
   const checks = {
     database: false,
     auth: {
       secret: hasConfiguredValue(process.env.AUTH_SECRET),
-      authUrl: hasConfiguredValue(process.env.AUTH_URL),
-      nextAuthUrl: hasConfiguredValue(process.env.NEXTAUTH_URL),
+      authUrl: hasValidHttpUrl(process.env.AUTH_URL),
+      nextAuthUrl: hasValidHttpUrl(process.env.NEXTAUTH_URL),
       google:
         hasConfiguredValue(process.env.AUTH_GOOGLE_ID) &&
         hasConfiguredValue(process.env.AUTH_GOOGLE_SECRET),
