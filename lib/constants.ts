@@ -105,6 +105,7 @@ export const playerNavigation = [
   { href: "/matches", label: "Jogos" },
   { href: "/leaderboard", label: "Ranking" },
   { href: "/feed", label: "Feed" },
+  { href: "/rules", label: "Regras" },
   { href: "/notifications", label: "Alertas" },
   { href: "/profile", label: "Perfil" }
 ];
