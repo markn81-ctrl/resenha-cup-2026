@@ -5,7 +5,6 @@ import {
   PlayerTier,
   Role
 } from "@prisma/client";
-import { demoAdmin, demoDashboard, demoFeed, demoLeaderboard, demoMatches, demoNotifications } from "@/lib/demo-data";
 import { buildPlayerStatus } from "@/lib/player-status";
 import { prisma } from "@/lib/prisma";
 import { getUserRivalry } from "@/lib/rivalries";
@@ -115,7 +114,7 @@ function buildEmptyAdminData(): AdminView {
 
 export async function getDashboardData(userId?: string | null): Promise<DashboardView> {
   if (!databaseEnabled() || !userId) {
-    return demoDashboard;
+    return buildEmptyDashboard(userId ?? "unknown");
   }
 
   try {
@@ -293,7 +292,7 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
 
 export async function getMatchesData(userId?: string | null): Promise<MatchCardData[]> {
   if (!databaseEnabled() || !userId) {
-    return demoMatches;
+    return [];
   }
 
   try {
@@ -379,7 +378,7 @@ export async function getLeaderboardData(
   scope: LeaderboardScope = LeaderboardScope.OVERALL
 ): Promise<LeaderboardRowView[]> {
   if (!databaseEnabled()) {
-    return demoLeaderboard[scope];
+    return [];
   }
 
   try {
@@ -438,7 +437,7 @@ export async function getLeaderboardData(
 
 export async function getFeedData(userId?: string | null): Promise<FeedPostView[]> {
   if (!databaseEnabled()) {
-    return demoFeed;
+    return [];
   }
 
   try {
@@ -506,7 +505,7 @@ export async function getFeedData(userId?: string | null): Promise<FeedPostView[
 
 export async function getNotificationsData(userId?: string | null): Promise<NotificationView[]> {
   if (!databaseEnabled() || !userId) {
-    return demoNotifications;
+    return [];
   }
 
   try {
@@ -532,7 +531,7 @@ export async function getNotificationsData(userId?: string | null): Promise<Noti
 
 export async function getUnreadNotificationsCount(userId?: string | null): Promise<number> {
   if (!databaseEnabled() || !userId) {
-    return demoNotifications.filter((item) => !item.isRead).length;
+    return 0;
   }
 
   try {
@@ -549,7 +548,7 @@ export async function getUnreadNotificationsCount(userId?: string | null): Promi
 
 export async function getAdminData(): Promise<AdminView> {
   if (!databaseEnabled()) {
-    return demoAdmin;
+    return buildEmptyAdminData();
   }
 
   try {
