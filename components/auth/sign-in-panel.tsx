@@ -2,7 +2,6 @@
 
 import type { FormEvent } from "react";
 import { useEffect, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getProviders, signIn } from "next-auth/react";
 
@@ -16,6 +15,7 @@ export function SignInPanel() {
   const [isRegister, setIsRegister] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [oauthProviders, setOauthProviders] = useState<ProviderButton[]>([]);
+  const [oauthPendingProvider, setOauthPendingProvider] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -86,6 +86,21 @@ export function SignInPanel() {
     router.refresh();
   }
 
+  async function handleOAuthSignIn(providerId: string) {
+    setMessage(null);
+    setOauthPendingProvider(providerId);
+
+    try {
+      await signIn(providerId, {
+        callbackUrl: "/dashboard",
+        redirect: true
+      });
+    } catch {
+      setMessage("Nao foi possivel iniciar o login com Google. Tente novamente.");
+      setOauthPendingProvider(null);
+    }
+  }
+
   return (
     <div className="glass rounded-[32px] p-6 sm:p-8">
       <div className="mb-6">
@@ -101,13 +116,17 @@ export function SignInPanel() {
       {oauthProviders.length ? (
         <div className="grid gap-3 sm:grid-cols-2">
           {oauthProviders.map((provider) => (
-            <Link
+            <button
               key={provider.id}
-              href={`/api/auth/signin/${provider.id}?callbackUrl=/dashboard`}
-              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold hover:bg-white/10"
+              type="button"
+              disabled={Boolean(oauthPendingProvider)}
+              onClick={() => {
+                void handleOAuthSignIn(provider.id);
+              }}
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold hover:bg-white/10 disabled:cursor-wait disabled:opacity-60"
             >
-              Entrar com {provider.name}
-            </Link>
+              {oauthPendingProvider === provider.id ? "Abrindo..." : `Entrar com ${provider.name}`}
+            </button>
           ))}
         </div>
       ) : null}
