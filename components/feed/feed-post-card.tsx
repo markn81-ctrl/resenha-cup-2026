@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Heart, MessageSquare, Send } from "lucide-react";
 import { feedTypeLabels } from "@/lib/constants";
 import { relativeTime } from "@/lib/utils";
@@ -9,6 +10,7 @@ import type { FeedPostView } from "@/types/app";
 import { Panel } from "@/components/ui/panel";
 
 export function FeedPostCard({ post }: { post: FeedPostView }) {
+  const router = useRouter();
   const [liked, setLiked] = useState(Boolean(post.likedByMe));
   const [likesCount, setLikesCount] = useState(post.likesCount);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -79,7 +81,15 @@ export function FeedPostCard({ post }: { post: FeedPostView }) {
       <form
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
-          const formData = new FormData(event.currentTarget);
+          const form = event.currentTarget;
+          const formData = new FormData(form);
+          const content = String(formData.get("content") ?? "").trim();
+
+          if (!content) {
+            setFeedback("Escreva um comentario antes de enviar.");
+            return;
+          }
+
           startTransition(async () => {
             setFeedback(null);
             const response = await fetch("/api/feed/comments", {
@@ -89,11 +99,18 @@ export function FeedPostCard({ post }: { post: FeedPostView }) {
               },
               body: JSON.stringify({
                 postId: post.id,
-                content: formData.get("content")
+                content
               })
             });
 
-            setFeedback(response.ok ? "Comentario enviado. Atualize para ver no feed." : "Falha ao comentar.");
+            if (!response.ok) {
+              setFeedback("Falha ao comentar.");
+              return;
+            }
+
+            form.reset();
+            setFeedback("Comentario enviado.");
+            router.refresh();
           });
         }}
         className="mt-5 flex gap-3"
