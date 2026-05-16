@@ -2,6 +2,7 @@ import {
   ApprovalStatus,
   LeaderboardScope,
   MatchStatus,
+  PlayerTier,
   Role
 } from "@prisma/client";
 import { demoAdmin, demoDashboard, demoFeed, demoLeaderboard, demoMatches, demoNotifications } from "@/lib/demo-data";
@@ -68,6 +69,50 @@ function databaseEnabled() {
   return Boolean(process.env.DATABASE_URL);
 }
 
+function buildEmptyDashboard(userId = "unknown"): DashboardView {
+  return {
+    user: {
+      id: userId,
+      name: "Participante",
+      username: "sem_username",
+      role: Role.USER,
+      approvalStatus: ApprovalStatus.APPROVED
+    },
+    currentStanding: {
+      position: 0,
+      totalPoints: 0,
+      movement: 0,
+      pointsToNext: null,
+      tier: PlayerTier.AVERAGE
+    },
+    rivalry: null,
+    topFive: [],
+    upcomingMatches: [],
+    hotFeed: []
+  };
+}
+
+function buildEmptyAdminData(): AdminView {
+  return {
+    pendingUsers: [],
+    recentAudit: [],
+    stats: {
+      users: 0,
+      approvedUsers: 0,
+      pendingUsers: 0,
+      posts: 0,
+      predictions: 0
+    },
+    leaderboardScopes: [
+      { scope: LeaderboardScope.OVERALL, leader: "Sem dados", points: 0 },
+      { scope: LeaderboardScope.GROUP_STAGE, leader: "Sem dados", points: 0 },
+      { scope: LeaderboardScope.KNOCKOUT, leader: "Sem dados", points: 0 }
+    ],
+    simulationMatches: [],
+    playerTeams: []
+  };
+}
+
 export async function getDashboardData(userId?: string | null): Promise<DashboardView> {
   if (!databaseEnabled() || !userId) {
     return demoDashboard;
@@ -127,7 +172,7 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
     ]);
 
     if (!user) {
-      return demoDashboard;
+      return buildEmptyDashboard(userId);
     }
 
     const rivalStanding = rivalry
@@ -153,7 +198,13 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
         totalPoints: standings?.totalPoints ?? 0,
         movement: standings?.movement ?? 0,
         pointsToNext: standings?.pointsToNext ?? null,
-        tier: demoDashboard.currentStanding.tier
+        tier: standings
+          ? buildPlayerStatus({
+              scope: LeaderboardScope.OVERALL,
+              rankPosition: standings.rankPosition,
+              totalPlayers: Math.max(topFive.length, standings.rankPosition)
+            }).tier
+          : PlayerTier.AVERAGE
       },
       rivalry: rivalry
         ? {
@@ -236,7 +287,7 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
       }))
     };
   } catch {
-    return demoDashboard;
+    return buildEmptyDashboard(userId);
   }
 }
 
@@ -320,7 +371,7 @@ export async function getMatchesData(userId?: string | null): Promise<MatchCardD
         : null
     }));
   } catch {
-    return demoMatches;
+    return [];
   }
 }
 
@@ -355,10 +406,6 @@ export async function getLeaderboardData(
       orderBy: [{ rankPosition: "asc" }]
     });
 
-    if (!rows.length) {
-      return demoLeaderboard[scope];
-    }
-
     return rows.map((row, index) => ({
       userId: row.userId,
       name: row.user.name ?? "Participante",
@@ -385,7 +432,7 @@ export async function getLeaderboardData(
         : null
     }));
   } catch {
-    return demoLeaderboard[scope];
+    return [];
   }
 }
 
@@ -415,10 +462,6 @@ export async function getFeedData(userId?: string | null): Promise<FeedPostView[
       },
       orderBy: { createdAt: "desc" }
     });
-
-    if (!posts.length) {
-      return demoFeed;
-    }
 
     return posts.map((post) => ({
       id: post.id,
@@ -457,7 +500,7 @@ export async function getFeedData(userId?: string | null): Promise<FeedPostView[
       }))
     }));
   } catch {
-    return demoFeed;
+    return [];
   }
 }
 
@@ -473,8 +516,7 @@ export async function getNotificationsData(userId?: string | null): Promise<Noti
       take: 20
     });
 
-    return notifications.length
-      ? notifications.map((item) => ({
+    return notifications.map((item) => ({
           id: item.id,
           type: item.type,
           title: item.title,
@@ -482,10 +524,9 @@ export async function getNotificationsData(userId?: string | null): Promise<Noti
           href: item.href,
           isRead: item.isRead,
           createdAt: item.createdAt
-        }))
-      : demoNotifications;
+        }));
   } catch {
-    return demoNotifications;
+    return [];
   }
 }
 
@@ -630,6 +671,6 @@ export async function getAdminData(): Promise<AdminView> {
       playerTeams: mapAdminTeamRoster(playerTeams)
     };
   } catch {
-    return demoAdmin;
+    return buildEmptyAdminData();
   }
 }

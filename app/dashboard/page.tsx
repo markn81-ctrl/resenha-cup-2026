@@ -48,6 +48,13 @@ export default async function DashboardPage() {
             {data.upcomingMatches.map((match) => (
               <MatchCard key={match.id} match={match} />
             ))}
+            {!data.upcomingMatches.length ? (
+              <Panel>
+                <p className="text-sm text-slate-300">
+                  Nenhum jogo carregado para exibir agora. Quando a tabela estiver ativa, os cards de palpite aparecem aqui.
+                </p>
+              </Panel>
+            ) : null}
           </div>
 
           <div className="space-y-4">
@@ -60,6 +67,13 @@ export default async function DashboardPage() {
             {data.hotFeed.map((post) => (
               <FeedPostCard key={post.id} post={post} />
             ))}
+            {!data.hotFeed.length ? (
+              <Panel>
+                <p className="text-sm text-slate-300">
+                  Feed limpo para o lancamento. A IAestagiaria ainda esta so observando a bagunca se formar.
+                </p>
+              </Panel>
+            ) : null}
           </div>
         </div>
       </div>

@@ -101,6 +101,11 @@ export function OverviewCards({
         </div>
 
         <div className="mt-4 space-y-3">
+          {!topFive.length ? (
+            <div className="rounded-2xl border border-white/8 bg-white/5 px-4 py-5 text-sm text-slate-300">
+              Top 5 ainda vazio. Assim que a turma entrar e pontuar, a corrida pela ponta ganha vida.
+            </div>
+          ) : null}
           {topFive.map((row, index) => (
             <div
               key={row.id}

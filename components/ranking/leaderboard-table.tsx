@@ -27,6 +27,13 @@ export function LeaderboardTable({
             </tr>
           </thead>
           <tbody>
+            {!rows.length ? (
+              <tr>
+                <td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-400">
+                  Ranking limpo por enquanto. Quando os primeiros palpites forem pontuados, a briga pela ponta aparece aqui.
+                </td>
+              </tr>
+            ) : null}
             {rows.map((row) => (
               <tr
                 key={row.userId}
