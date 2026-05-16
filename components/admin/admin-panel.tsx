@@ -26,6 +26,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
   const [aiPreview, setAiPreview] = useState<string | null>(null);
   const [aiScope, setAiScope] = useState<LeaderboardScope>(LeaderboardScope.OVERALL);
+  const [launchResetFeedback, setLaunchResetFeedback] = useState<string | null>(null);
   const [teamEditorFeedback, setTeamEditorFeedback] = useState<string | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState<string>(data.playerTeams[0]?.teamId ?? "");
   const [teamRosters, setTeamRosters] = useState(data.playerTeams);
@@ -59,6 +60,54 @@ export function AdminPanel({ data }: { data: AdminView }) {
   return (
     <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
       <div className="space-y-4">
+        <Panel>
+          <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Lancamento</p>
+          <h3 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-bold">
+            Limpar dados de teste
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            Remove ranking, feed, notificacoes, palpites, resultados simulados e usuarios fake do banco ativo. Sua conta admin e outros admins sao preservados.
+          </p>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                setLaunchResetFeedback(null);
+
+                const confirmed = window.confirm(
+                  "Confirmar limpeza de lancamento? Isso apaga feed, ranking, palpites e usuarios nao-admin do banco atual."
+                );
+
+                if (!confirmed) {
+                  return;
+                }
+
+                const response = await fetch("/api/admin/reset-launch", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json"
+                  },
+                  body: JSON.stringify({ confirmation: "LIMPAR" })
+                });
+                const payload = await response.json();
+
+                setLaunchResetFeedback(
+                  response.ok
+                    ? `Base limpa. Admins preservados: ${payload.keptAdmins?.join(", ") || "admin atual"}. Atualize a pagina.`
+                    : payload.error ?? "Nao foi possivel limpar os dados."
+                );
+              })
+            }
+            className="mt-4 rounded-2xl border border-rose-300/30 bg-rose-400/10 px-5 py-3 font-semibold text-rose-100 disabled:opacity-60"
+          >
+            {pending ? "Processando..." : "Limpar dados de teste"}
+          </button>
+          {launchResetFeedback ? (
+            <p className="mt-4 text-sm text-brand-100">{launchResetFeedback}</p>
+          ) : null}
+        </Panel>
+
         <Panel>
           <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Aprovacoes</p>
           <h3 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-bold">
