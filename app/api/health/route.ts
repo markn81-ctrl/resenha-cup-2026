@@ -9,7 +9,6 @@ function hasConfiguredValue(value: string | undefined) {
   const normalized = value.trim();
 
   return ![
-    "",
     "replace-with-a-long-random-secret",
     "[PROJECT-REF]",
     "[REGION]",
