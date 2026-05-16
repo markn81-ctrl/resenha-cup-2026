@@ -15,6 +15,7 @@
     "seed": "tsx prisma/seed.demo.ts",
     "seed:prod": "tsx prisma/seed.production.ts",
     "reset:launch": "node scripts/reset-launch.mjs",
+    "verify:launch": "node scripts/verify-launch-clean.mjs",
     "promote:admin": "node scripts/promote-admin.mjs",
     "preflight:prod": "node scripts/preflight-production.mjs",
     "backfill:players": "tsx scripts/backfill-team-players.ts",
