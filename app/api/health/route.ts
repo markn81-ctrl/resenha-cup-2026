@@ -69,6 +69,10 @@ export async function GET() {
   return NextResponse.json(
     {
       status,
+      version: {
+        launchReset: true,
+        buildMarker: "launch-reset-2026-05-16"
+      },
       timestamp: new Date().toISOString(),
       checks
     },
