@@ -2,6 +2,7 @@
 
 import { CardsEdge, CardsRange, LeaderboardScope } from "@prisma/client";
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { AdminSimulationView, AdminView } from "@/types/app";
 import { Panel } from "@/components/ui/panel";
 import { Flag } from "@/components/ui/flag";
@@ -22,9 +23,12 @@ const cardsRanges = [
 ];
 
 export function AdminPanel({ data }: { data: AdminView }) {
+  const router = useRouter();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
   const [aiPreview, setAiPreview] = useState<string | null>(null);
+  const [pendingUsers, setPendingUsers] = useState(data.pendingUsers);
+  const [approvalUserId, setApprovalUserId] = useState<string | null>(null);
   const [aiScope, setAiScope] = useState<LeaderboardScope>(LeaderboardScope.OVERALL);
   const [launchResetFeedback, setLaunchResetFeedback] = useState<string | null>(null);
   const [teamEditorFeedback, setTeamEditorFeedback] = useState<string | null>(null);
@@ -48,6 +52,10 @@ export function AdminPanel({ data }: { data: AdminView }) {
   const selectedTeam = teamRosters.find((team) => team.teamId === selectedTeamId) ?? teamRosters[0] ?? null;
 
   useEffect(() => {
+    setPendingUsers(data.pendingUsers);
+  }, [data.pendingUsers]);
+
+  useEffect(() => {
     setTeamRosters(data.playerTeams);
   }, [data.playerTeams]);
 
@@ -56,6 +64,44 @@ export function AdminPanel({ data }: { data: AdminView }) {
       setSelectedTeamId(data.playerTeams[0].teamId);
     }
   }, [data.playerTeams, selectedTeamId]);
+
+  function updateApproval(userId: string, approvalStatus: "APPROVED" | "REJECTED") {
+    startTransition(async () => {
+      setFeedback(null);
+      setApprovalUserId(userId);
+
+      try {
+        const response = await fetch("/api/admin/approve", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            userId,
+            approvalStatus
+          })
+        });
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          setFeedback(payload?.error ?? "Falha ao atualizar aprovacao.");
+          return;
+        }
+
+        setPendingUsers((users) => users.filter((user) => user.id !== userId));
+        setFeedback(
+          approvalStatus === "APPROVED"
+            ? "Usuario aprovado e liberado para entrar."
+            : "Usuario recusado."
+        );
+        router.refresh();
+      } catch {
+        setFeedback("Nao foi possivel falar com o servidor agora. Tente novamente.");
+      } finally {
+        setApprovalUserId(null);
+      }
+    });
+  }
 
   return (
     <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
@@ -115,7 +161,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
           </h3>
 
           <div className="mt-4 space-y-3">
-            {data.pendingUsers.map((user) => (
+            {pendingUsers.map((user) => (
               <div
                 key={user.id}
                 className="rounded-2xl border border-white/8 bg-white/5 p-4"
@@ -131,61 +177,25 @@ export function AdminPanel({ data }: { data: AdminView }) {
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      disabled={pending}
-                      onClick={() =>
-                        startTransition(async () => {
-                          setFeedback(null);
-                          const response = await fetch("/api/admin/approve", {
-                            method: "PATCH",
-                            headers: {
-                              "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                              userId: user.id,
-                              approvalStatus: "APPROVED"
-                            })
-                          });
-
-                          setFeedback(
-                            response.ok ? "Usuario aprovado. Atualize a pagina." : "Falha ao aprovar."
-                          );
-                        })
-                      }
-                      className="rounded-2xl bg-brand-400 px-4 py-2 font-semibold text-slate-950"
+                      disabled={pending || approvalUserId === user.id}
+                      onClick={() => updateApproval(user.id, "APPROVED")}
+                      className="rounded-2xl bg-brand-400 px-4 py-2 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      Aprovar
+                      {approvalUserId === user.id ? "Aprovando..." : "Aprovar"}
                     </button>
                     <button
                       type="button"
-                      disabled={pending}
-                      onClick={() =>
-                        startTransition(async () => {
-                          setFeedback(null);
-                          const response = await fetch("/api/admin/approve", {
-                            method: "PATCH",
-                            headers: {
-                              "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                              userId: user.id,
-                              approvalStatus: "REJECTED"
-                            })
-                          });
-
-                          setFeedback(
-                            response.ok ? "Usuario recusado. Atualize a pagina." : "Falha ao recusar."
-                          );
-                        })
-                      }
-                      className="rounded-2xl border border-white/10 px-4 py-2 font-semibold text-slate-100"
+                      disabled={pending || approvalUserId === user.id}
+                      onClick={() => updateApproval(user.id, "REJECTED")}
+                      className="rounded-2xl border border-white/10 px-4 py-2 font-semibold text-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      Recusar
+                      {approvalUserId === user.id ? "Processando..." : "Recusar"}
                     </button>
                   </div>
                 </div>
               </div>
             ))}
-            {!data.pendingUsers.length ? (
+            {!pendingUsers.length ? (
               <p className="text-sm text-slate-300">Nenhum usuario aguardando aprovacao.</p>
             ) : null}
           </div>
