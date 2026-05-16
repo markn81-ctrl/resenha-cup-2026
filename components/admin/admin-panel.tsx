@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { AdminSimulationView, AdminView } from "@/types/app";
 import { Panel } from "@/components/ui/panel";
 import { Flag } from "@/components/ui/flag";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { phaseLabels, playerPositionShortLabels } from "@/lib/constants";
 import { formatLongDate, formatPoints, relativeTime } from "@/lib/utils";
 
@@ -28,7 +29,10 @@ export function AdminPanel({ data }: { data: AdminView }) {
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
   const [aiPreview, setAiPreview] = useState<string | null>(null);
   const [pendingUsers, setPendingUsers] = useState(data.pendingUsers);
-  const [approvalUserId, setApprovalUserId] = useState<string | null>(null);
+  const [approvalAction, setApprovalAction] = useState<{
+    userId: string;
+    approvalStatus: "APPROVED" | "REJECTED";
+  } | null>(null);
   const [aiScope, setAiScope] = useState<LeaderboardScope>(LeaderboardScope.OVERALL);
   const [launchResetFeedback, setLaunchResetFeedback] = useState<string | null>(null);
   const [teamEditorFeedback, setTeamEditorFeedback] = useState<string | null>(null);
@@ -68,7 +72,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
   function updateApproval(userId: string, approvalStatus: "APPROVED" | "REJECTED") {
     startTransition(async () => {
       setFeedback(null);
-      setApprovalUserId(userId);
+      setApprovalAction({ userId, approvalStatus });
 
       try {
         const response = await fetch("/api/admin/approve", {
@@ -98,7 +102,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
       } catch {
         setFeedback("Nao foi possivel falar com o servidor agora. Tente novamente.");
       } finally {
-        setApprovalUserId(null);
+        setApprovalAction(null);
       }
     });
   }
@@ -175,22 +179,32 @@ export function AdminPanel({ data }: { data: AdminView }) {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button
+                    <LoadingButton
                       type="button"
-                      disabled={pending || approvalUserId === user.id}
+                      disabled={pending || approvalAction?.userId === user.id}
+                      loading={
+                        approvalAction?.userId === user.id &&
+                        approvalAction.approvalStatus === "APPROVED"
+                      }
+                      loadingLabel="Aprovando..."
                       onClick={() => updateApproval(user.id, "APPROVED")}
                       className="rounded-2xl bg-brand-400 px-4 py-2 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {approvalUserId === user.id ? "Aprovando..." : "Aprovar"}
-                    </button>
-                    <button
+                      Aprovar
+                    </LoadingButton>
+                    <LoadingButton
                       type="button"
-                      disabled={pending || approvalUserId === user.id}
+                      disabled={pending || approvalAction?.userId === user.id}
+                      loading={
+                        approvalAction?.userId === user.id &&
+                        approvalAction.approvalStatus === "REJECTED"
+                      }
+                      loadingLabel="Processando..."
                       onClick={() => updateApproval(user.id, "REJECTED")}
                       className="rounded-2xl border border-white/10 px-4 py-2 font-semibold text-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {approvalUserId === user.id ? "Processando..." : "Recusar"}
-                    </button>
+                      Recusar
+                    </LoadingButton>
                   </div>
                 </div>
               </div>

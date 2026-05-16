@@ -8,6 +8,7 @@ import { feedTypeLabels } from "@/lib/constants";
 import { relativeTime } from "@/lib/utils";
 import type { FeedPostView } from "@/types/app";
 import { Panel } from "@/components/ui/panel";
+import { LoadingButton } from "@/components/ui/loading-button";
 
 export function FeedPostCard({ post }: { post: FeedPostView }) {
   const router = useRouter();
@@ -155,13 +156,15 @@ export function FeedPostCard({ post }: { post: FeedPostView }) {
             placeholder="Responder com emoji, zoeira ou analise..."
             className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
           />
-          <button
+          <LoadingButton
             type="submit"
             disabled={pending}
-            className="inline-flex items-center justify-center rounded-2xl bg-accent-300 px-4 py-3 font-semibold text-slate-950"
+            loading={pending}
+            loadingLabel="Enviando..."
+            className="rounded-2xl bg-accent-300 px-4 py-3 font-semibold text-slate-950"
           >
             <Send className="h-4 w-4" />
-          </button>
+          </LoadingButton>
         </form>
 
         {feedback ? <p className="mt-3 text-sm text-brand-100">{feedback}</p> : null}

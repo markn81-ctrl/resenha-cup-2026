@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { useState, useTransition } from "react";
 import { CardsEdge, CardsRange, MatchStatus, PredictionOutcome } from "@prisma/client";
 import { Flag } from "@/components/ui/flag";
+import { LoadingButton } from "@/components/ui/loading-button";
 import { playerPositionShortLabels } from "@/lib/constants";
 import type { MatchCardData } from "@/types/app";
 
@@ -233,21 +234,19 @@ export function PredictionForm({ match }: { match: MatchCardData }) {
             </p>
           ) : null}
         </div>
-        <button
+        <LoadingButton
           type="submit"
           disabled={locked || pending}
+          loading={pending}
+          loadingLabel={hasSavedPrediction ? "Atualizando..." : "Salvando..."}
           className="w-full rounded-2xl bg-brand-400 px-5 py-3 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {locked
             ? "Travado"
-            : pending
-              ? hasSavedPrediction
-                ? "Atualizando..."
-                : "Salvando..."
-              : hasSavedPrediction
+            : hasSavedPrediction
                 ? "Editar palpite"
                 : "Salvar palpite"}
-        </button>
+        </LoadingButton>
       </div>
 
       {message ? <p className="text-sm text-brand-100">{message}</p> : null}
