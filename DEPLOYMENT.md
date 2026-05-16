@@ -47,6 +47,7 @@ Cadastre estas variaveis:
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL`
 - `LAUNCH_ADMIN_EMAIL`
+- `CRON_SECRET`
 
 Base recomendada:
 
@@ -95,11 +96,26 @@ Resultado esperado:
 
 `checks.ai.configured` pode ficar `false` se voce quiser publicar sem a IA ligada no primeiro momento.
 
-## 6. Checklist final de lancamento
+## 6. Rotinas automaticas
+
+O arquivo `vercel.json` agenda a rota `/api/cron/pick-lock-reminders` a cada 5 minutos.
+
+Essa rotina:
+
+- identifica jogos cujo palpite fecha nos proximos 15 minutos
+- cria notificacoes para usuarios aprovados que ainda nao palpitaram
+- publica um post da IAestagiaria no feed
+- evita duplicidade usando `AuditLog`
+
+Para funcionar em producao, cadastre `CRON_SECRET` na Vercel. A rota so aceita chamadas com o header `Authorization: Bearer <CRON_SECRET>`.
+
+## 7. Checklist final de lancamento
 
 - rodar `npm run release:check`
 - confirmar dominio final em `AUTH_URL` e `NEXTAUTH_URL`
 - confirmar callback do Google
+- confirmar `CRON_SECRET`
+- conferir a aba Cron Jobs na Vercel
 - testar login com sua conta real
 - testar aprovacao de usuario
 - testar criacao de palpite
@@ -107,7 +123,7 @@ Resultado esperado:
 - testar `/api/health`
 - fazer backup do Supabase
 
-## 7. Sequencia recomendada no dia do lancamento
+## 8. Sequencia recomendada no dia do lancamento
 
 ```bash
 npm run reset:launch -- markn81@gmail.com

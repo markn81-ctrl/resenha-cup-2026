@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/pick-lock-reminders",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

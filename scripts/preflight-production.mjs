@@ -92,6 +92,10 @@ try {
     warnings.push("OPENAI_API_KEY ausente. A IAestagiaria vai operar apenas em modo fallback.");
   }
 
+  if (!isConfigured(env.CRON_SECRET)) {
+    warnings.push("CRON_SECRET ausente. Rotinas automaticas, como lembrete de fechamento de palpite, nao devem rodar em producao.");
+  }
+
   if ((isConfigured(env.AUTH_APPLE_ID) && !isConfigured(env.AUTH_APPLE_SECRET)) ||
       (!isConfigured(env.AUTH_APPLE_ID) && isConfigured(env.AUTH_APPLE_SECRET))) {
     errors.push("Apple OAuth esta pela metade. Configure ID e SECRET juntos ou deixe ambos vazios.");
