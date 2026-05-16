@@ -1,45 +1,16 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { getProviders, signIn } from "next-auth/react";
-
-type ProviderButton = {
-  id: string;
-  name: string;
-};
+import { signIn } from "next-auth/react";
 
 export function SignInPanel() {
   const router = useRouter();
   const [isRegister, setIsRegister] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [oauthProviders, setOauthProviders] = useState<ProviderButton[]>([]);
   const [oauthPendingProvider, setOauthPendingProvider] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-
-  useEffect(() => {
-    let active = true;
-
-    void getProviders().then((providers) => {
-      if (!active || !providers) {
-        return;
-      }
-
-      const availableProviders = Object.values(providers)
-        .filter((provider) => provider.type === "oauth")
-        .map((provider) => ({
-          id: provider.id,
-          name: provider.name
-        }));
-
-      setOauthProviders(availableProviders);
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   async function handleCredentials(formData: FormData) {
     setMessage(null);
@@ -113,27 +84,22 @@ export function SignInPanel() {
         </p>
       </div>
 
-      {oauthProviders.length ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {oauthProviders.map((provider) => (
-            <button
-              key={provider.id}
-              type="button"
-              disabled={Boolean(oauthPendingProvider)}
-              onClick={() => {
-                void handleOAuthSignIn(provider.id);
-              }}
-              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold hover:bg-white/10 disabled:cursor-wait disabled:opacity-60"
-            >
-              {oauthPendingProvider === provider.id ? "Abrindo..." : `Entrar com ${provider.name}`}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <div className="grid gap-3">
+        <button
+          type="button"
+          disabled={Boolean(oauthPendingProvider)}
+          onClick={() => {
+            void handleOAuthSignIn("google");
+          }}
+          className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold hover:bg-white/10 disabled:cursor-wait disabled:opacity-60"
+        >
+          {oauthPendingProvider === "google" ? "Abrindo..." : "Entrar com Google"}
+        </button>
+      </div>
 
       <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-[0.24em] text-slate-500">
         <div className="h-px flex-1 bg-white/10" />
-        {oauthProviders.length ? "ou email" : "acesso por email"}
+        ou email
         <div className="h-px flex-1 bg-white/10" />
       </div>
 
