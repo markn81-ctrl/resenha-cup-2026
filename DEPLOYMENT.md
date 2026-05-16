@@ -109,7 +109,9 @@ Para usar Gemini na IAestagiaria:
 
 ## 6. Rotinas automaticas
 
-O arquivo `vercel.json` agenda a rota `/api/cron/pick-lock-reminders` a cada 5 minutos.
+O arquivo `vercel.json` agenda a rota `/api/cron/pick-lock-reminders`.
+
+Na conta Hobby da Vercel, cron jobs sao limitados a execucao diaria. Por isso o projeto usa uma agenda diaria compativel com Hobby. Para lembretes reais 15 minutos antes do lock, use conta Pro da Vercel ou um agendador externo chamando essa rota com `Authorization: Bearer <CRON_SECRET>`.
 
 Essa rotina:
 
