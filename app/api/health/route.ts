@@ -46,7 +46,11 @@ export async function GET() {
         hasConfiguredValue(process.env.AUTH_APPLE_SECRET)
     },
     ai: {
-      configured: hasConfiguredValue(process.env.OPENAI_API_KEY)
+      provider: process.env.AI_PROVIDER ?? "openai",
+      configured:
+        process.env.AI_PROVIDER === "gemini"
+          ? hasConfiguredValue(process.env.GEMINI_API_KEY)
+          : hasConfiguredValue(process.env.OPENAI_API_KEY)
     }
   };
 

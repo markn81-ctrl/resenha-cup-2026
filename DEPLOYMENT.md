@@ -44,8 +44,12 @@ Cadastre estas variaveis:
 - `AUTH_GOOGLE_SECRET`
 - `AUTH_APPLE_ID`
 - `AUTH_APPLE_SECRET`
+- `AI_PROVIDER`
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL`
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL`
+- `GEMINI_BASE_URL`
 - `LAUNCH_ADMIN_EMAIL`
 - `CRON_SECRET`
 
@@ -95,6 +99,13 @@ Resultado esperado:
 - `checks.auth.nextAuthUrl: true`
 
 `checks.ai.configured` pode ficar `false` se voce quiser publicar sem a IA ligada no primeiro momento.
+
+Para usar Gemini na IAestagiaria:
+
+- `AI_PROVIDER=gemini`
+- `GEMINI_API_KEY=<sua-chave-do-Google-AI-Studio>`
+- `GEMINI_MODEL=gemini-3-flash-preview`
+- `GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/`
 
 ## 6. Rotinas automaticas
 

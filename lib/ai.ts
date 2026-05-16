@@ -6,6 +6,16 @@ const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
+const gemini = process.env.GEMINI_API_KEY
+  ? new OpenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      baseURL:
+        process.env.GEMINI_BASE_URL ?? "https://generativelanguage.googleapis.com/v1beta/openai/"
+    })
+  : null;
+
+const aiProvider = (process.env.AI_PROVIDER ?? "openai").toLowerCase();
+
 export type CommentaryInput = {
   scope: LeaderboardScope;
   headline: string;
@@ -85,6 +95,45 @@ function buildPromptPayload(input: CommentaryInput) {
 export async function generateAiCommentary(input: CommentaryInput) {
   const fallback = buildFallbackCommentary(input);
 
+  if (aiProvider === "gemini") {
+    return generateGeminiCommentary(input, fallback);
+  }
+
+  if (aiProvider === "openai") {
+    return generateOpenAiCommentary(input, fallback);
+  }
+
+  return fallback;
+}
+
+async function generateGeminiCommentary(input: CommentaryInput, fallback: string) {
+  if (!gemini) {
+    return fallback;
+  }
+
+  try {
+    const response = await gemini.chat.completions.create({
+      model: process.env.GEMINI_MODEL ?? "gemini-3-flash-preview",
+      temperature: 0.95,
+      messages: [
+        {
+          role: "system",
+          content: BRAZILIAN_FEED_SYSTEM_PROMPT
+        },
+        {
+          role: "user",
+          content: JSON.stringify(buildPromptPayload(input))
+        }
+      ]
+    });
+
+    return response.choices[0]?.message?.content?.trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+async function generateOpenAiCommentary(input: CommentaryInput, fallback: string) {
   if (!openai) {
     return fallback;
   }

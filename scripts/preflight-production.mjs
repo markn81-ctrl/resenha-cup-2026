@@ -88,8 +88,22 @@ try {
     warnings.push("Google OAuth nao esta completo. O login com Google nao vai aparecer.");
   }
 
-  if (!isConfigured(env.OPENAI_API_KEY)) {
+  const aiProvider = (env.AI_PROVIDER || "openai").toLowerCase();
+
+  if (!["openai", "gemini"].includes(aiProvider)) {
+    errors.push("AI_PROVIDER deve ser openai ou gemini.");
+  }
+
+  if (aiProvider === "gemini" && !isConfigured(env.GEMINI_API_KEY)) {
+    warnings.push("GEMINI_API_KEY ausente. A IAestagiaria vai operar apenas em modo fallback.");
+  }
+
+  if (aiProvider === "openai" && !isConfigured(env.OPENAI_API_KEY)) {
     warnings.push("OPENAI_API_KEY ausente. A IAestagiaria vai operar apenas em modo fallback.");
+  }
+
+  if (isConfigured(env.GEMINI_BASE_URL) && !isValidUrl(env.GEMINI_BASE_URL)) {
+    errors.push("GEMINI_BASE_URL nao e uma URL valida.");
   }
 
   if (!isConfigured(env.CRON_SECRET)) {
