@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Heart, MessageSquare, Send } from "lucide-react";
 import { feedTypeLabels } from "@/lib/constants";
@@ -11,10 +11,19 @@ import { Panel } from "@/components/ui/panel";
 
 export function FeedPostCard({ post }: { post: FeedPostView }) {
   const router = useRouter();
+  const commentsRef = useRef<HTMLDivElement | null>(null);
   const [liked, setLiked] = useState(Boolean(post.likedByMe));
   const [likesCount, setLikesCount] = useState(post.likesCount);
+  const [commentsOpen, setCommentsOpen] = useState(Boolean(post.comments?.length));
   const [feedback, setFeedback] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  function openComments() {
+    setCommentsOpen(true);
+    window.setTimeout(() => {
+      commentsRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 0);
+  }
 
   return (
     <Panel>
@@ -31,7 +40,7 @@ export function FeedPostCard({ post }: { post: FeedPostView }) {
           ) : null}
           {post.author ? (
             <p className="mt-2 text-sm text-slate-300">
-              {post.author.name} · @{post.author.username}
+              {post.author.name} - @{post.author.username}
             </p>
           ) : null}
         </div>
@@ -72,77 +81,91 @@ export function FeedPostCard({ post }: { post: FeedPostView }) {
           <Heart className="h-4 w-4" />
           {likesCount}
         </button>
-        <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm text-slate-200">
+        <button
+          type="button"
+          onClick={openComments}
+          className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm text-slate-200 transition hover:bg-white/10 hover:text-white"
+          aria-expanded={commentsOpen}
+        >
           <MessageSquare className="h-4 w-4" />
           {post.commentsCount}
-        </span>
+        </button>
       </div>
 
-      <form
-        onSubmit={(event: FormEvent<HTMLFormElement>) => {
-          event.preventDefault();
-          const form = event.currentTarget;
-          const formData = new FormData(form);
-          const content = String(formData.get("content") ?? "").trim();
+      <div ref={commentsRef}>
+        {commentsOpen ? (
+          <div className="mt-5 space-y-3">
+            {post.comments?.length ? (
+              post.comments.map((comment) => (
+                <div key={comment.id} className="rounded-2xl border border-white/8 bg-white/5 p-4">
+                  <p className="text-sm font-semibold">
+                    {comment.author.name} - @{comment.author.username}
+                  </p>
+                  <p className="mt-2 text-sm text-slate-200">{comment.content}</p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-2xl border border-white/8 bg-white/5 p-4 text-sm text-slate-300">
+                Ainda nao tem comentario aqui. Pode puxar a primeira resenha.
+              </div>
+            )}
+          </div>
+        ) : null}
 
-          if (!content) {
-            setFeedback("Escreva um comentario antes de enviar.");
-            return;
-          }
+        <form
+          onSubmit={(event: FormEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const formData = new FormData(form);
+            const content = String(formData.get("content") ?? "").trim();
 
-          startTransition(async () => {
-            setFeedback(null);
-            const response = await fetch("/api/feed/comments", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                postId: post.id,
-                content
-              })
-            });
-
-            if (!response.ok) {
-              setFeedback("Falha ao comentar.");
+            if (!content) {
+              setFeedback("Escreva um comentario antes de enviar.");
               return;
             }
 
-            form.reset();
-            setFeedback("Comentario enviado.");
-            router.refresh();
-          });
-        }}
-        className="mt-5 flex flex-col gap-3 sm:flex-row"
-      >
-        <input
-          name="content"
-          placeholder="Responder com emoji, zoeira ou analise..."
-          className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
-        />
-        <button
-          type="submit"
-          disabled={pending}
-          className="inline-flex items-center justify-center rounded-2xl bg-accent-300 px-4 py-3 font-semibold text-slate-950"
+            startTransition(async () => {
+              setFeedback(null);
+              const response = await fetch("/api/feed/comments", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  postId: post.id,
+                  content
+                })
+              });
+
+              if (!response.ok) {
+                setFeedback("Falha ao comentar.");
+                return;
+              }
+
+              form.reset();
+              setCommentsOpen(true);
+              setFeedback("Comentario enviado.");
+              router.refresh();
+            });
+          }}
+          className="mt-5 flex flex-col gap-3 sm:flex-row"
         >
-          <Send className="h-4 w-4" />
-        </button>
-      </form>
+          <input
+            name="content"
+            placeholder="Responder com emoji, zoeira ou analise..."
+            className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+          />
+          <button
+            type="submit"
+            disabled={pending}
+            className="inline-flex items-center justify-center rounded-2xl bg-accent-300 px-4 py-3 font-semibold text-slate-950"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        </form>
 
-      {feedback ? <p className="mt-3 text-sm text-brand-100">{feedback}</p> : null}
-
-      {post.comments?.length ? (
-        <div className="mt-5 space-y-3">
-          {post.comments.map((comment) => (
-            <div key={comment.id} className="rounded-2xl border border-white/8 bg-white/5 p-4">
-              <p className="text-sm font-semibold">
-                {comment.author.name} · @{comment.author.username}
-              </p>
-              <p className="mt-2 text-sm text-slate-200">{comment.content}</p>
-            </div>
-          ))}
-        </div>
-      ) : null}
+        {feedback ? <p className="mt-3 text-sm text-brand-100">{feedback}</p> : null}
+      </div>
     </Panel>
   );
 }

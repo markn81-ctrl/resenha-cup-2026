@@ -162,6 +162,20 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
       prisma.feedPost.findMany({
         include: {
           author: true,
+          comments: {
+            where: { parentId: null },
+            include: {
+              author: true,
+              replies: {
+                include: {
+                  author: true
+                }
+              }
+            },
+            orderBy: { createdAt: "asc" },
+            take: 3
+          },
+          likes: userId ? { where: { userId } } : true,
           _count: { select: { likes: true, comments: true } }
         },
         orderBy: { createdAt: "desc" },
@@ -275,6 +289,7 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
         createdAt: post.createdAt,
         likesCount: post._count.likes,
         commentsCount: post._count.comments,
+        likedByMe: Boolean(userId && Array.isArray(post.likes) && post.likes.length),
         author: post.author
           ? {
               id: post.author.id,
@@ -282,7 +297,25 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
               username: post.author.username ?? "user",
               image: post.author.image
             }
-          : null
+          : null,
+        comments: post.comments.map((comment) => ({
+          id: comment.id,
+          content: comment.content,
+          createdAt: comment.createdAt,
+          author: {
+            name: comment.author.name ?? "Participante",
+            username: comment.author.username ?? "user"
+          },
+          replies: comment.replies.map((reply) => ({
+            id: reply.id,
+            content: reply.content,
+            createdAt: reply.createdAt,
+            author: {
+              name: reply.author.name ?? "Participante",
+              username: reply.author.username ?? "user"
+            }
+          }))
+        }))
       }))
     };
   } catch {
