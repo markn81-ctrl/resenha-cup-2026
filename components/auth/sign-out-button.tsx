@@ -8,10 +8,10 @@ export function SignOutButton() {
     <button
       type="button"
       onClick={() => signOut({ callbackUrl: "/" })}
-      className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white"
+      className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 text-sm font-medium text-slate-200 transition hover:bg-white/10 hover:text-white sm:px-4"
     >
       <LogOut className="h-4 w-4" />
-      Sair
+      <span className="hidden sm:inline">Sair</span>
     </button>
   );
 }

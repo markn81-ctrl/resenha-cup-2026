@@ -113,17 +113,17 @@ export function FeedPostCard({ post }: { post: FeedPostView }) {
             router.refresh();
           });
         }}
-        className="mt-5 flex gap-3"
+        className="mt-5 flex flex-col gap-3 sm:flex-row"
       >
         <input
           name="content"
           placeholder="Responder com emoji, zoeira ou analise..."
-          className="flex-1 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+          className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
         />
         <button
           type="submit"
           disabled={pending}
-          className="rounded-2xl bg-accent-300 px-4 py-3 font-semibold text-slate-950"
+          className="inline-flex items-center justify-center rounded-2xl bg-accent-300 px-4 py-3 font-semibold text-slate-950"
         >
           <Send className="h-4 w-4" />
         </button>

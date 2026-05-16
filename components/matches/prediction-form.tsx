@@ -133,7 +133,7 @@ export function PredictionForm({ match }: { match: MatchCardData }) {
           ))}
         </select>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           <input
             name="homeScore"
             type="number"
@@ -236,7 +236,7 @@ export function PredictionForm({ match }: { match: MatchCardData }) {
         <button
           type="submit"
           disabled={locked || pending}
-          className="rounded-2xl bg-brand-400 px-5 py-3 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-2xl bg-brand-400 px-5 py-3 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {locked
             ? "Travado"

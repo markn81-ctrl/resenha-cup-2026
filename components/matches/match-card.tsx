@@ -16,7 +16,7 @@ export function MatchCard({ match }: { match: MatchCardData }) {
             <span>{phaseLabels[match.phase]}</span>
             {match.groupKey ? <span>Grupo {match.groupKey}</span> : null}
           </div>
-          <div className="mt-3 flex items-center gap-4">
+          <div className="mt-3 grid gap-3 sm:flex sm:items-center sm:gap-4">
             <div className="flex items-center gap-3">
               <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-300">
                 A
@@ -28,11 +28,11 @@ export function MatchCard({ match }: { match: MatchCardData }) {
                 size={48}
               />
               <div>
-                <p className="text-xl font-semibold">{match.homeTeam}</p>
+                <p className="text-lg font-semibold sm:text-xl">{match.homeTeam}</p>
                 <p className="text-sm text-slate-400">{match.homeCode ?? "HOME"}</p>
               </div>
             </div>
-            <span className="rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-slate-300">
+            <span className="w-fit rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-slate-300">
               vs
             </span>
             <div className="flex items-center gap-3">
@@ -46,7 +46,7 @@ export function MatchCard({ match }: { match: MatchCardData }) {
                 size={48}
               />
               <div>
-                <p className="text-xl font-semibold">{match.awayTeam}</p>
+                <p className="text-lg font-semibold sm:text-xl">{match.awayTeam}</p>
                 <p className="text-sm text-slate-400">{match.awayCode ?? "AWAY"}</p>
               </div>
             </div>
