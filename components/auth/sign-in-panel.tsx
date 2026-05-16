@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getProviders, signIn } from "next-auth/react";
 
@@ -100,14 +101,13 @@ export function SignInPanel() {
       {oauthProviders.length ? (
         <div className="grid gap-3 sm:grid-cols-2">
           {oauthProviders.map((provider) => (
-            <button
+            <Link
               key={provider.id}
-              type="button"
-              onClick={() => signIn(provider.id, { callbackUrl: "/dashboard" })}
+              href={`/api/auth/signin/${provider.id}?callbackUrl=/dashboard`}
               className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold hover:bg-white/10"
             >
               Entrar com {provider.name}
-            </button>
+            </Link>
           ))}
         </div>
       ) : null}
