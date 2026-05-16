@@ -181,6 +181,23 @@ export type NotificationView = {
   createdAt: Date;
 };
 
+export type PalpiteiroView = {
+  id: string;
+  name: string;
+  username: string;
+  email?: string | null;
+  image?: string | null;
+  bio?: string | null;
+  role: Role;
+  createdAt: Date;
+  points: number;
+  rankPosition: number | null;
+  tier: PlayerTier;
+  predictionsCount: number;
+  postsCount: number;
+  commentsCount: number;
+};
+
 export type AdminView = {
   pendingUsers: Array<{
     id: string;

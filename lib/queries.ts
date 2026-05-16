@@ -15,7 +15,8 @@ import type {
   FeedPostView,
   LeaderboardRowView,
   MatchCardData,
-  NotificationView
+  NotificationView,
+  PalpiteiroView
 } from "@/types/app";
 
 function mapTeamPlayers(
@@ -531,6 +532,72 @@ export async function getFeedData(userId?: string | null): Promise<FeedPostView[
         }))
       }))
     }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getPalpiteirosData(): Promise<PalpiteiroView[]> {
+  if (!databaseEnabled()) {
+    return [];
+  }
+
+  try {
+    const [users, totalPlayers] = await Promise.all([
+      prisma.user.findMany({
+        where: {
+          approvalStatus: ApprovalStatus.APPROVED
+        },
+        include: {
+          leaderboardRows: {
+            where: { scope: LeaderboardScope.OVERALL },
+            orderBy: { snapshotAt: "desc" },
+            take: 1
+          },
+          _count: {
+            select: {
+              predictions: true,
+              feedPosts: true,
+              comments: true
+            }
+          }
+        },
+        orderBy: [{ createdAt: "asc" }]
+      }),
+      prisma.user.count({
+        where: {
+          approvalStatus: ApprovalStatus.APPROVED
+        }
+      })
+    ]);
+
+    return users.map((user) => {
+      const standing = user.leaderboardRows[0];
+      const rankPosition = standing?.rankPosition ?? null;
+
+      return {
+        id: user.id,
+        name: user.name ?? "Participante",
+        username: user.username ?? "user",
+        email: user.email,
+        image: user.image,
+        bio: user.bio,
+        role: user.role,
+        createdAt: user.createdAt,
+        points: standing?.totalPoints ?? 0,
+        rankPosition,
+        tier: rankPosition
+          ? buildPlayerStatus({
+              scope: LeaderboardScope.OVERALL,
+              rankPosition,
+              totalPlayers
+            }).tier
+          : PlayerTier.AVERAGE,
+        predictionsCount: user._count.predictions,
+        postsCount: user._count.feedPosts,
+        commentsCount: user._count.comments
+      };
+    });
   } catch {
     return [];
   }

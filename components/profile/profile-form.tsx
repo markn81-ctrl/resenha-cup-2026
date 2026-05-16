@@ -1,8 +1,9 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { LoadingButton } from "@/components/ui/loading-button";
 
 type ProfileFormProps = {
   initialValues: {
@@ -16,11 +17,14 @@ type ProfileFormProps = {
 
 export function ProfileForm({ initialValues }: ProfileFormProps) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [pending, startTransition] = useTransition();
 
   return (
     <form
+      ref={formRef}
       onSubmit={(event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
@@ -47,6 +51,7 @@ export function ProfileForm({ initialValues }: ProfileFormProps) {
           }
 
           setMessage("Perfil atualizado com sucesso.");
+          setIsEditing(false);
           router.refresh();
         });
       }}
@@ -61,7 +66,8 @@ export function ProfileForm({ initialValues }: ProfileFormProps) {
             id="name"
             name="name"
             defaultValue={initialValues.name}
-            className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+            disabled={!isEditing || pending}
+            className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 disabled:bg-slate-950/20 disabled:text-slate-400"
           />
         </div>
 
@@ -73,7 +79,8 @@ export function ProfileForm({ initialValues }: ProfileFormProps) {
             id="username"
             name="username"
             defaultValue={initialValues.username}
-            className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+            disabled={!isEditing || pending}
+            className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 disabled:bg-slate-950/20 disabled:text-slate-400"
           />
         </div>
       </div>
@@ -99,7 +106,8 @@ export function ProfileForm({ initialValues }: ProfileFormProps) {
           name="image"
           defaultValue={initialValues.image}
           placeholder="https://..."
-          className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+          disabled={!isEditing || pending}
+          className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 disabled:bg-slate-950/20 disabled:text-slate-400"
         />
         <p className="text-xs text-slate-400">
           Pode usar a foto do Google ou colar a URL de uma imagem publica.
@@ -116,21 +124,55 @@ export function ProfileForm({ initialValues }: ProfileFormProps) {
           rows={4}
           defaultValue={initialValues.bio}
           placeholder="Dono da resenha, cravador de placar, especialista em zicar..."
-          className="rounded-3xl border border-white/10 bg-slate-950/40 px-4 py-3"
+          disabled={!isEditing || pending}
+          className="rounded-3xl border border-white/10 bg-slate-950/40 px-4 py-3 disabled:bg-slate-950/20 disabled:text-slate-400"
         />
       </div>
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-400">
-          O topo do app e o feed usam essas informacoes para identificar voce.
+          {isEditing
+            ? "Revise as mudancas e salve para atualizar seu topo e o feed."
+            : "Clique em editar para mudar como voce aparece na Resenha Cup."}
         </p>
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-2xl bg-brand-400 px-5 py-3 font-semibold text-slate-950 disabled:opacity-60"
-        >
-          {pending ? "Salvando..." : "Salvar perfil"}
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {!isEditing ? (
+            <button
+              type="button"
+              onClick={() => {
+                setMessage(null);
+                setIsEditing(true);
+              }}
+              className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 font-semibold text-slate-100 transition hover:bg-white/10"
+            >
+              Editar
+            </button>
+          ) : null}
+          {isEditing ? (
+            <>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => {
+                  setMessage(null);
+                  formRef.current?.reset();
+                  setIsEditing(false);
+                }}
+                className="rounded-2xl border border-white/10 px-5 py-3 font-semibold text-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <LoadingButton
+                type="submit"
+                loading={pending}
+                loadingLabel="Salvando..."
+                className="rounded-2xl bg-brand-400 px-5 py-3 font-semibold text-slate-950"
+              >
+                Salvar perfil
+              </LoadingButton>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {message ? <p className="text-sm text-brand-100">{message}</p> : null}
