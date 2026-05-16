@@ -113,7 +113,7 @@ async function generateGeminiCommentary(input: CommentaryInput, fallback: string
 
   try {
     const response = await gemini.chat.completions.create({
-      model: process.env.GEMINI_MODEL ?? "gemini-3-flash-preview",
+      model: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
       temperature: 0.95,
       messages: [
         {

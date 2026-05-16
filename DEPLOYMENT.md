@@ -104,7 +104,7 @@ Para usar Gemini na IAestagiaria:
 
 - `AI_PROVIDER=gemini`
 - `GEMINI_API_KEY=<sua-chave-do-Google-AI-Studio>`
-- `GEMINI_MODEL=gemini-3-flash-preview`
+- `GEMINI_MODEL=gemini-2.5-flash`
 - `GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/`
 
 ## 6. Rotinas automaticas
