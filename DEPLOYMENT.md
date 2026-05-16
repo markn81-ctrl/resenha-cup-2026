@@ -118,6 +118,8 @@ Essa rotina:
 - identifica jogos cujo palpite fecha nos proximos 15 minutos
 - cria notificacoes para usuarios aprovados que ainda nao palpitaram
 - publica um post da IAestagiaria no feed
+- publica 1 post diario de aquecimento da Copa ate 11 de junho de 2026
+- comenta contagem regressiva, novos integrantes e clima da Resenha Cup
 - evita duplicidade usando `AuditLog`
 
 Para funcionar em producao, cadastre `CRON_SECRET` na Vercel. A rota so aceita chamadas com o header `Authorization: Bearer <CRON_SECRET>`.

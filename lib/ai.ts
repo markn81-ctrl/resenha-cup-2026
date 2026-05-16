@@ -35,6 +35,19 @@ export type CommentaryInput = {
   }>;
   matchResults?: string[];
   matchSummary?: string;
+  timeContext?: {
+    localDate: string;
+    daysUntilWorldCup: number;
+    openingMatchDate: string;
+    tournamentStatus: "pre_world_cup" | "in_progress" | "finished";
+  };
+  newMembers?: string[];
+  communityStats?: {
+    totalUsers: number;
+    approvedUsers: number;
+    pendingUsers: number;
+  };
+  dailyTopic?: string;
 };
 
 const BRAZILIAN_FEED_SYSTEM_PROMPT = `
@@ -56,6 +69,11 @@ REGRAS IMPORTANTES
 - Nunca use linguagem ofensiva, preconceituosa ou agressiva
 - Nunca exponha ou humilhe diretamente um usuario
 - Quando citar alguem em fase ruim, provoque a situacao, nao a pessoa
+- A IAestagiaria deve estar sempre focada em Copa do Mundo 2026, Resenha Cup e clima de bolao entre amigos
+- Antes do inicio da Copa, use contagem regressiva, expectativa, preparacao dos palpites, provocacoes leves e boas-vindas aos novos integrantes
+- Interaja com o tempo quando houver contexto: hoje, faltam X dias, esta chegando, semana de aquecimento, contagem regressiva
+- Se houver novos integrantes, receba a galera com humor leve e chame para participar do feed
+- Nao invente noticia oficial, escalação, lesao, resultado ou curiosidade especifica se isso nao estiver nos dados recebidos
 - Zoar sim, humilhar nunca
 - Sempre manter clima divertido
 - Nao use sempre a mesma estrutura de frase
@@ -87,6 +105,10 @@ function buildPromptPayload(input: CommentaryInput) {
     resumo_rodada: input.matchSummary ?? null,
     manchete: input.headline,
     escopo: input.scope,
+    contexto_tempo: input.timeContext ?? null,
+    novos_integrantes: input.newMembers ?? [],
+    estatisticas_comunidade: input.communityStats ?? null,
+    tema_do_dia: input.dailyTopic ?? null,
     pedido_de_variacao:
       "Crie uma frase nova, com ritmo diferente das anteriores, mantendo zoeira saudavel e sem humilhar ninguem."
   };
@@ -165,8 +187,18 @@ export function buildFallbackCommentary(input: CommentaryInput) {
   const exact = input.exactScoreHits?.[0] ?? null;
   const misses = input.totalMisses?.[0] ?? null;
   const streakEntry = Object.entries(input.streak ?? {}).sort((a, b) => b[1] - a[1])[0];
+  const daysUntil = input.timeContext?.daysUntilWorldCup;
+  const newMembers = input.newMembers?.length ? input.newMembers.join(", ") : null;
 
   const templates = [
+    () =>
+      daysUntil !== undefined && daysUntil > 0
+        ? `Contagem regressiva ligada: faltam ${daysUntil} dia(s) para a Copa começar. Quem ainda nao entrou no clima da Resenha Cup ta pedindo para virar figurante no proprio bolao.`
+        : `${input.headline} A Copa ja entrou no radar e a resenha oficialmente nao tem mais volta.`,
+    () =>
+      newMembers
+        ? `Chegou gente nova na Resenha Cup: ${newMembers}. Ja podem escolher um canto no sofa e preparar o primeiro palpite, porque aqui ate chute torto vira assunto.`
+        : `A IAestagiaria passou para lembrar: Copa do Mundo nao espera ninguem. Perfil arrumado, palpite afiado e provocacao em dia, por favor.`,
     () =>
       `${input.headline} ${input.matchSummary ?? "A mesa ja comecou a fazer conta de guardanapo."} Quem bobear agora vai virar pauta da resenha.`,
     () =>
