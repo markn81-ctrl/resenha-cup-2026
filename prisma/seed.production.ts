@@ -4,13 +4,37 @@ import { buildTeamPlayerSlots, buildTournamentMatches, groups } from "./tourname
 const prisma = new PrismaClient();
 
 async function main() {
-  const existingPredictions = await prisma.prediction.count();
+  const resetGameplay = process.argv.includes("--reset-gameplay");
+  const [existingPredictions, existingResults] = await Promise.all([
+    prisma.prediction.count(),
+    prisma.matchResult.count()
+  ]);
 
-  if (existingPredictions > 0) {
-    throw new Error(
-      "O banco ja possui palpites. Para proteger a operacao, rode o seed de producao apenas em banco limpo ou sem previsoes."
-    );
+  if (existingPredictions > 0 || existingResults > 0) {
+    if (!resetGameplay) {
+      throw new Error(
+        "O banco ja possui palpites ou resultados. Para proteger a operacao, rode novamente com --reset-gameplay se quiser limpar apenas dados de jogo e aplicar a tabela oficial."
+      );
+    }
+
+    await prisma.$transaction([
+      prisma.matchResult.deleteMany(),
+      prisma.prediction.deleteMany(),
+      prisma.leaderboard.deleteMany(),
+      prisma.playerStatus.deleteMany(),
+      prisma.rivalry.deleteMany(),
+      prisma.score.deleteMany({
+        where: {
+          prediction: null,
+          matchResult: null
+        }
+      })
+    ]);
   }
+
+  const officialTeamCodes = Object.values(groups).flatMap((groupTeams) =>
+    groupTeams.map((team) => team.code)
+  );
 
   for (const [groupKey, teams] of Object.entries(groups)) {
     for (const [index, team] of teams.entries()) {
@@ -42,7 +66,7 @@ async function main() {
   const createdTeams = await prisma.team.findMany({
     where: {
       code: {
-        in: Object.values(groups).flatMap((groupTeams) => groupTeams.map((team) => team.code))
+        in: officialTeamCodes
       }
     }
   });
@@ -95,6 +119,14 @@ async function main() {
     });
   }
 
+  await prisma.team.deleteMany({
+    where: {
+      code: {
+        notIn: officialTeamCodes
+      }
+    }
+  });
+
   await prisma.auditLog.create({
     data: {
       actorId: null,
@@ -103,7 +135,8 @@ async function main() {
       entityId: "production-bootstrap",
       payload: {
         teams: createdTeams.length,
-        matches: matches.length
+        matches: matches.length,
+        source: "official-fifa-2026-schedule"
       }
     }
   });
