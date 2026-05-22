@@ -12,11 +12,18 @@
 - Auditoria de cadastro, aprovacao, alteracao de perfil, palpites, posts, simulacoes, reset e rotinas automaticas.
 - Healthcheck para banco, auth e IA.
 - Preflight de producao para variaveis obrigatorias e alertas operacionais.
+- Headers HTTP defensivos:
+  - `Strict-Transport-Security`
+  - `X-Content-Type-Options`
+  - `X-Frame-Options`
+  - `Referrer-Policy`
+  - `Permissions-Policy`
+  - CSP limitada a `base-uri`, `object-src`, `frame-ancestors`, `form-action` e `upgrade-insecure-requests`
 
 ## Riscos e melhorias recomendadas
 
 - Adicionar rate limit em login, cadastro, feed e comentarios.
-- Adicionar headers HTTP de seguranca: CSP, HSTS, X-Frame-Options, Referrer-Policy e Permissions-Policy.
+- Evoluir CSP em modo gradual, testando fontes, scripts, imagens e conexoes antes de regras mais restritivas.
 - Restringir `remotePatterns` de imagens para dominios conhecidos.
 - Criar politica formal de backup, retencao e exclusao.
 - Criar fluxo autenticado para solicitacoes LGPD.
