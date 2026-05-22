@@ -5,6 +5,10 @@ import NextAuth from "next-auth";
 import Apple from "next-auth/providers/apple";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
+import {
+  LEGAL_PRIVACY_VERSION,
+  LEGAL_TERMS_VERSION
+} from "@/lib/legal";
 import { prisma } from "@/lib/prisma";
 import { credentialsSchema } from "@/lib/validation";
 
@@ -91,12 +95,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (existing) {
+          const acceptedAt = new Date();
           await prisma.user.update({
             where: { id: existing.id },
             data: {
               username: existing.username ?? user.email.split("@")[0],
               name: user.name ?? existing.name,
-              image: user.image ?? existing.image
+              image: user.image ?? existing.image,
+              termsAcceptedAt: existing.termsAcceptedAt ?? acceptedAt,
+              termsVersion: existing.termsVersion ?? LEGAL_TERMS_VERSION,
+              privacyAcceptedAt: existing.privacyAcceptedAt ?? acceptedAt,
+              privacyVersion: existing.privacyVersion ?? LEGAL_PRIVACY_VERSION
             }
           });
         }
@@ -138,6 +147,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       return session;
+    }
+  },
+  events: {
+    async createUser({ user }) {
+      if (!user.id) {
+        return;
+      }
+
+      const acceptedAt = new Date();
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          termsAcceptedAt: acceptedAt,
+          termsVersion: LEGAL_TERMS_VERSION,
+          privacyAcceptedAt: acceptedAt,
+          privacyVersion: LEGAL_PRIVACY_VERSION
+        }
+      });
     }
   }
 });

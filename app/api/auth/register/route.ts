@@ -1,6 +1,10 @@
 import bcrypt from "bcryptjs";
 import { ApprovalStatus, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
+import {
+  LEGAL_PRIVACY_VERSION,
+  LEGAL_TERMS_VERSION
+} from "@/lib/legal";
 import { prisma } from "@/lib/prisma";
 import { signUpSchema } from "@/lib/validation";
 
@@ -27,6 +31,7 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = await bcrypt.hash(parsed.data.password, 10);
+    const acceptedAt = new Date();
 
     const user = await prisma.user.create({
       data: {
@@ -35,7 +40,15 @@ export async function POST(request: Request) {
         email: parsed.data.email,
         passwordHash,
         role: Role.USER,
-        approvalStatus: ApprovalStatus.PENDING
+        approvalStatus: ApprovalStatus.PENDING,
+        termsAcceptedAt: acceptedAt,
+        termsVersion: LEGAL_TERMS_VERSION,
+        privacyAcceptedAt: acceptedAt,
+        privacyVersion: LEGAL_PRIVACY_VERSION,
+        legalAcceptedIp:
+          request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+          request.headers.get("x-real-ip"),
+        legalAcceptedUserAgent: request.headers.get("user-agent")
       }
     });
 
@@ -46,7 +59,9 @@ export async function POST(request: Request) {
         entityId: user.id,
         payload: {
           email: user.email,
-          approvalStatus: user.approvalStatus
+          approvalStatus: user.approvalStatus,
+          termsVersion: LEGAL_TERMS_VERSION,
+          privacyVersion: LEGAL_PRIVACY_VERSION
         }
       }
     });

@@ -102,6 +102,12 @@ model User {
   approvalStatus   ApprovalStatus   @default(PENDING)
   bio              String?
   timezone         String           @default("America/Sao_Paulo")
+  termsAcceptedAt  DateTime?
+  termsVersion     String?
+  privacyAcceptedAt DateTime?
+  privacyVersion   String?
+  legalAcceptedIp  String?
+  legalAcceptedUserAgent String?    @db.Text
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   accounts         Account[]

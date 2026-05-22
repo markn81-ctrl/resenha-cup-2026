@@ -4,11 +4,13 @@ import type { FormEvent } from "react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { LEGAL_PRIVACY_VERSION, LEGAL_TERMS_VERSION } from "@/lib/legal";
 
 export function SignInPanel() {
   const router = useRouter();
   const [isRegister, setIsRegister] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [legalAccepted, setLegalAccepted] = useState(false);
   const [oauthPendingProvider, setOauthPendingProvider] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -16,6 +18,11 @@ export function SignInPanel() {
     setMessage(null);
 
     if (isRegister) {
+      if (!legalAccepted) {
+        setMessage("Voce precisa aceitar os termos e a politica de privacidade para criar conta.");
+        return;
+      }
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
@@ -25,7 +32,8 @@ export function SignInPanel() {
           name: formData.get("name"),
           username: formData.get("username"),
           email: formData.get("email"),
-          password: formData.get("password")
+          password: formData.get("password"),
+          acceptTerms: legalAccepted
         })
       });
 
@@ -59,6 +67,12 @@ export function SignInPanel() {
 
   async function handleOAuthSignIn(providerId: string) {
     setMessage(null);
+
+    if (!legalAccepted) {
+      setMessage("Aceite os termos e a politica de privacidade antes de continuar com provedor externo.");
+      return;
+    }
+
     setOauthPendingProvider(providerId);
 
     try {
@@ -84,10 +98,30 @@ export function SignInPanel() {
         </p>
       </div>
 
+      <label className="mb-4 flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-6 text-slate-300">
+        <input
+          type="checkbox"
+          checked={legalAccepted}
+          onChange={(event) => setLegalAccepted(event.target.checked)}
+          className="mt-1 h-4 w-4 rounded border-white/20 bg-slate-950"
+        />
+        <span>
+          Li e aceito os{" "}
+          <a className="font-semibold text-brand-100 underline underline-offset-4" href="/terms">
+            Termos de Uso
+          </a>{" "}
+          v{LEGAL_TERMS_VERSION} e a{" "}
+          <a className="font-semibold text-brand-100 underline underline-offset-4" href="/privacy">
+            Politica de Privacidade
+          </a>{" "}
+          v{LEGAL_PRIVACY_VERSION}.
+        </span>
+      </label>
+
       <div className="grid gap-3">
         <button
           type="button"
-          disabled={Boolean(oauthPendingProvider)}
+          disabled={Boolean(oauthPendingProvider) || !legalAccepted}
           onClick={() => {
             void handleOAuthSignIn("google");
           }}

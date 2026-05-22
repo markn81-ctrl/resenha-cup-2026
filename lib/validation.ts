@@ -8,7 +8,8 @@ export const credentialsSchema = z.object({
 
 export const signUpSchema = credentialsSchema.extend({
   name: z.string().min(2),
-  username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/)
+  username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/),
+  acceptTerms: z.literal(true)
 });
 
 export const predictionInputSchema = z.object({
