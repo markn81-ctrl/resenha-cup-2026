@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Bell } from "lucide-react";
+import { Bell, UserCircle } from "lucide-react";
 import { Role } from "@prisma/client";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { SmartNavLink } from "@/components/layout/smart-nav-link";
@@ -85,11 +85,11 @@ export function AppShell({
 
           <div className="flex items-center justify-start gap-3 sm:justify-end">
             <SmartNavLink
-              href="/notifications"
-              ariaLabel="Abrir alertas"
+              href="/resenha"
+              ariaLabel="Abrir resenha e alertas"
               className={cn(
                 "relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:bg-white/10",
-                currentPath === "/notifications" && "border-brand-300/50 bg-brand-400/15 text-brand-100"
+                currentPath === "/resenha" && "border-brand-300/50 bg-brand-400/15 text-brand-100"
               )}
             >
               <Bell className="h-5 w-5" />
@@ -98,6 +98,16 @@ export function AppShell({
                   {unreadNotifications > 9 ? "9+" : unreadNotifications}
                 </span>
               ) : null}
+            </SmartNavLink>
+            <SmartNavLink
+              href="/profile"
+              ariaLabel="Abrir perfil"
+              className={cn(
+                "inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:bg-white/10",
+                currentPath === "/profile" && "border-brand-300/50 bg-brand-400/15 text-brand-100"
+              )}
+            >
+              <UserCircle className="h-5 w-5" />
             </SmartNavLink>
             <SignOutButton />
           </div>

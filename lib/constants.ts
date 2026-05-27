@@ -101,14 +101,10 @@ export const feedTypeLabels: Record<FeedPostType, string> = {
 };
 
 export const playerNavigation = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/matches", label: "Jogos" },
-  { href: "/leaderboard", label: "Ranking" },
-  { href: "/players", label: "Palpiteiros" },
-  { href: "/feed", label: "Feed" },
-  { href: "/rules", label: "Regras" },
-  { href: "/notifications", label: "Alertas" },
-  { href: "/profile", label: "Perfil" }
+  { href: "/dashboard", label: "Inicio" },
+  { href: "/matches", label: "Palpites" },
+  { href: "/league", label: "Liga" },
+  { href: "/resenha", label: "Resenha" }
 ];
 
 export const adminNavigation = [{ href: "/admin", label: "Painel Admin" }];

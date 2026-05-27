@@ -136,22 +136,8 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
           status: { not: MatchStatus.FINISHED }
         },
         include: {
-          homeTeam: {
-            include: {
-              players: {
-                where: { isActive: true },
-                orderBy: { slotNumber: "asc" }
-              }
-            }
-          },
-          awayTeam: {
-            include: {
-              players: {
-                where: { isActive: true },
-                orderBy: { slotNumber: "asc" }
-              }
-            }
-          },
+          homeTeam: true,
+          awayTeam: true,
           predictions: {
             where: { userId },
             include: { score: true }
@@ -264,8 +250,8 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
         awayCode: match.awayTeam?.code,
         homeCountryCode: match.homeTeam?.countryCode,
         awayCountryCode: match.awayTeam?.countryCode,
-        homePlayers: mapTeamPlayers(match.homeTeam),
-        awayPlayers: mapTeamPlayers(match.awayTeam),
+        homePlayers: [],
+        awayPlayers: [],
         city: match.city,
         venue: match.venue,
         prediction: match.predictions[0]
