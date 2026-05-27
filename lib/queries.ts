@@ -712,7 +712,7 @@ export async function getUnreadNotificationsCount(userId?: string | null): Promi
   }
 
   try {
-    return prisma.notification.count({
+    return await prisma.notification.count({
       where: {
         userId,
         isRead: false

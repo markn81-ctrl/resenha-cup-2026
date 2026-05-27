@@ -86,7 +86,7 @@ export function AppShell({
           <div className="flex items-center justify-start gap-3 sm:justify-end">
             <Link
               href="/notifications"
-              prefetch
+              prefetch={false}
               aria-label="Abrir alertas"
               className={cn(
                 "relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:bg-white/10",
@@ -113,7 +113,7 @@ export function AppShell({
               <Link
                 key={item.href}
                 href={item.href}
-                prefetch
+                prefetch={false}
                 className={cn(
                   "whitespace-nowrap rounded-2xl px-3 py-2.5 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white sm:px-4 sm:py-3 sm:text-sm",
                   currentPath === item.href &&
@@ -134,7 +134,7 @@ export function AppShell({
                 <Link
                   key={item.href}
                   href={item.href}
-                  prefetch
+                  prefetch={false}
                   className={cn(
                     "whitespace-nowrap rounded-2xl px-3 py-2.5 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white sm:px-4 sm:py-3 sm:text-sm",
                     currentPath === item.href && "bg-accent-300 text-slate-950"
