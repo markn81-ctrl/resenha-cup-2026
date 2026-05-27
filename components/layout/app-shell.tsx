@@ -1,8 +1,8 @@
 import Image from "next/image";
-import Link from "next/link";
 import { Bell } from "lucide-react";
 import { Role } from "@prisma/client";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { SmartNavLink } from "@/components/layout/smart-nav-link";
 import { adminNavigation, playerNavigation } from "@/lib/constants";
 import { cn, getAvatarFallback, getDisplayName } from "@/lib/utils";
 import type { AppUserShell } from "@/types/app";
@@ -84,10 +84,9 @@ export function AppShell({
           </div>
 
           <div className="flex items-center justify-start gap-3 sm:justify-end">
-            <Link
+            <SmartNavLink
               href="/notifications"
-              prefetch={false}
-              aria-label="Abrir alertas"
+              ariaLabel="Abrir alertas"
               className={cn(
                 "relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:bg-white/10",
                 currentPath === "/notifications" && "border-brand-300/50 bg-brand-400/15 text-brand-100"
@@ -99,7 +98,7 @@ export function AppShell({
                   {unreadNotifications > 9 ? "9+" : unreadNotifications}
                 </span>
               ) : null}
-            </Link>
+            </SmartNavLink>
             <SignOutButton />
           </div>
         </div>
@@ -110,10 +109,9 @@ export function AppShell({
               Jogo
             </span>
             {playerNavigation.map((item) => (
-              <Link
+              <SmartNavLink
                 key={item.href}
                 href={item.href}
-                prefetch={false}
                 className={cn(
                   "whitespace-nowrap rounded-2xl px-3 py-2.5 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white sm:px-4 sm:py-3 sm:text-sm",
                   currentPath === item.href &&
@@ -121,7 +119,7 @@ export function AppShell({
                 )}
               >
                 {item.label}
-              </Link>
+              </SmartNavLink>
             ))}
           </nav>
 
@@ -131,17 +129,16 @@ export function AppShell({
                 Administracao
               </span>
               {adminNavigation.map((item) => (
-                <Link
+                <SmartNavLink
                   key={item.href}
                   href={item.href}
-                  prefetch={false}
                   className={cn(
                     "whitespace-nowrap rounded-2xl px-3 py-2.5 text-xs font-medium text-slate-300 transition hover:bg-white/5 hover:text-white sm:px-4 sm:py-3 sm:text-sm",
                     currentPath === item.href && "bg-accent-300 text-slate-950"
                   )}
                 >
                   {item.label}
-                </Link>
+                </SmartNavLink>
               ))}
             </nav>
           ) : null}
