@@ -31,6 +31,7 @@ export function PredictionForm({ match }: { match: MatchCardData }) {
   const [message, setMessage] = useState<string | null>(null);
   const [hasSavedPrediction, setHasSavedPrediction] = useState(Boolean(match.prediction));
   const [pending, startTransition] = useTransition();
+  const isEditingPrediction = Boolean(match.prediction) || hasSavedPrediction;
   const locked = match.status !== MatchStatus.SCHEDULED;
   const hasPlayerCatalog = match.homePlayers.length > 0 || match.awayPlayers.length > 0;
 
@@ -74,7 +75,11 @@ export function PredictionForm({ match }: { match: MatchCardData }) {
           const payload = await response.json();
           if (response.ok) {
             setHasSavedPrediction(true);
-            setMessage("Palpite salvo com sucesso. Voce ainda pode editar ate o lock.");
+            setMessage(
+              isEditingPrediction
+                ? "Alteracoes salvas com sucesso. Voce ainda pode editar ate o lock."
+                : "Palpite salvo com sucesso. Voce ainda pode editar ate o lock."
+            );
             return;
           }
 
@@ -238,13 +243,13 @@ export function PredictionForm({ match }: { match: MatchCardData }) {
           type="submit"
           disabled={locked || pending}
           loading={pending}
-          loadingLabel={hasSavedPrediction ? "Atualizando..." : "Salvando..."}
+          loadingLabel={isEditingPrediction ? "Salvando alteracoes..." : "Salvando..."}
           className="w-full rounded-2xl bg-brand-400 px-5 py-3 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {locked
             ? "Travado"
-            : hasSavedPrediction
-                ? "Editar palpite"
+            : isEditingPrediction
+                ? "Salvar alteracoes"
                 : "Salvar palpite"}
         </LoadingButton>
       </div>
