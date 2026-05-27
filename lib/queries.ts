@@ -19,7 +19,7 @@ import type {
   PalpiteiroView
 } from "@/types/app";
 
-function mapTeamPlayers(
+export function mapTeamPlayers(
   team?:
     | {
         players?: Array<{
@@ -332,6 +332,80 @@ export async function getMatchesData(userId?: string | null): Promise<MatchCardD
   try {
     const matches = await prisma.match.findMany({
       include: {
+        homeTeam: true,
+        awayTeam: true,
+        result: {
+          include: { score: true }
+        },
+        predictions: {
+          where: { userId },
+          include: { score: true }
+        }
+      },
+      orderBy: [{ startsAt: "asc" }]
+    });
+
+    return matches.map((match) => ({
+      id: match.id,
+      number: match.number,
+      phase: match.phase,
+      groupKey: match.groupKey,
+      startsAt: match.startsAt,
+      lockAt: match.lockAt,
+      status: match.status,
+      homeTeam: match.homeTeam?.name ?? match.homePlaceholder ?? "Time A",
+      awayTeam: match.awayTeam?.name ?? match.awayPlaceholder ?? "Time B",
+      homeCode: match.homeTeam?.code,
+      awayCode: match.awayTeam?.code,
+      homeCountryCode: match.homeTeam?.countryCode,
+      awayCountryCode: match.awayTeam?.countryCode,
+      homePlayers: [],
+      awayPlayers: [],
+      city: match.city,
+      venue: match.venue,
+      prediction: match.predictions[0]
+        ? {
+            outcome: match.predictions[0].outcome,
+            score: {
+              home: match.predictions[0].score.home,
+              away: match.predictions[0].score.away
+            },
+            scorers: match.predictions[0].scorers,
+            cardsEdge: match.predictions[0].cardsEdge,
+            cardsRange: match.predictions[0].cardsRange,
+            points: match.predictions[0].points
+          }
+        : null,
+      result: match.result
+        ? {
+            outcome: match.result.outcome,
+            score: {
+              home: match.result.score.home,
+              away: match.result.score.away
+            },
+            scorers: match.result.scorers,
+            cardsEdge: match.result.cardsEdge,
+            cardsRange: match.result.cardsRange
+          }
+        : null
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getMatchPredictionData(
+  matchId: string,
+  userId?: string | null
+): Promise<MatchCardData | null> {
+  if (!databaseEnabled() || !userId) {
+    return null;
+  }
+
+  try {
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
         homeTeam: {
           include: {
             players: {
@@ -355,11 +429,14 @@ export async function getMatchesData(userId?: string | null): Promise<MatchCardD
           where: { userId },
           include: { score: true }
         }
-      },
-      orderBy: [{ startsAt: "asc" }]
+      }
     });
 
-    return matches.map((match) => ({
+    if (!match) {
+      return null;
+    }
+
+    return {
       id: match.id,
       number: match.number,
       phase: match.phase,
@@ -402,9 +479,9 @@ export async function getMatchesData(userId?: string | null): Promise<MatchCardD
             cardsRange: match.result.cardsRange
           }
         : null
-    }));
+    };
   } catch {
-    return [];
+    return null;
   }
 }
 

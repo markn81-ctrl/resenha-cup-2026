@@ -4,7 +4,7 @@ import { formatLongDate } from "@/lib/utils";
 import type { MatchCardData } from "@/types/app";
 import { Panel } from "@/components/ui/panel";
 import { Flag } from "@/components/ui/flag";
-import { PredictionForm } from "@/components/matches/prediction-form";
+import { PredictionPanel } from "@/components/matches/prediction-panel";
 
 export function MatchCard({ match }: { match: MatchCardData }) {
   return (
@@ -87,7 +87,7 @@ export function MatchCard({ match }: { match: MatchCardData }) {
         </div>
       ) : null}
 
-      <PredictionForm match={match} />
+      <PredictionPanel match={match} />
     </Panel>
   );
 }
