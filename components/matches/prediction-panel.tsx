@@ -5,20 +5,25 @@ import { MatchStatus } from "@prisma/client";
 import type { MatchCardData } from "@/types/app";
 import { PredictionForm } from "@/components/matches/prediction-form";
 
+type PredictionSnapshot = NonNullable<MatchCardData["prediction"]>;
+
 export function PredictionPanel({ match }: { match: MatchCardData }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [currentMatch, setCurrentMatch] = useState(match);
   const [loadedMatch, setLoadedMatch] = useState<MatchCardData | null>(
     match.homePlayers.length || match.awayPlayers.length ? match : null
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const locked = match.status !== MatchStatus.SCHEDULED;
-  const predictionLabel = match.prediction
-    ? `${match.prediction.score.home} x ${match.prediction.score.away}`
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const locked = currentMatch.status !== MatchStatus.SCHEDULED;
+  const predictionLabel = currentMatch.prediction
+    ? `${currentMatch.prediction.score.home} x ${currentMatch.prediction.score.away}`
     : "Nenhum palpite salvo";
 
   async function openPredictionForm() {
     setError(null);
+    setSuccessMessage(null);
 
     if (loadedMatch) {
       setIsOpen(true);
@@ -28,7 +33,7 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`/api/matches/${match.id}`, {
+      const response = await fetch(`/api/matches/${currentMatch.id}`, {
         method: "GET"
       });
 
@@ -38,11 +43,13 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
       }
 
       const data = (await response.json()) as MatchCardData;
-      setLoadedMatch({
+      const nextMatch = {
         ...data,
         startsAt: new Date(data.startsAt),
         lockAt: new Date(data.lockAt)
-      });
+      };
+      setCurrentMatch(nextMatch);
+      setLoadedMatch(nextMatch);
       setIsOpen(true);
     } catch {
       setError("Nao foi possivel carregar o formulario agora.");
@@ -51,21 +58,34 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
     }
   }
 
+  function closeAfterSave(prediction: PredictionSnapshot) {
+    const nextMatch = {
+      ...(loadedMatch ?? currentMatch),
+      prediction
+    };
+
+    setCurrentMatch(nextMatch);
+    setLoadedMatch(nextMatch);
+    setIsOpen(false);
+    setSuccessMessage("Palpite salvo. Voce ainda pode editar ate o lock.");
+  }
+
   if (isOpen && loadedMatch) {
-    return <PredictionForm match={loadedMatch} />;
+    return <PredictionForm match={loadedMatch} onSaved={closeAfterSave} />;
   }
 
   return (
     <div className="mt-4 flex flex-col gap-3 rounded-3xl border border-white/8 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <p className="text-xs uppercase tracking-[0.22em] text-slate-400">
-          {match.prediction ? "Seu palpite" : "Palpite"}
+          {currentMatch.prediction ? "Seu palpite" : "Palpite"}
         </p>
         <p className="mt-1 text-sm font-semibold text-slate-100">{predictionLabel}</p>
         <p className="mt-1 text-xs text-slate-400">
-          {locked
+          {successMessage ??
+            (locked
             ? "Este jogo ja esta travado."
-            : "Abra o formulario apenas quando quiser criar ou editar."}
+              : "Abra o formulario apenas quando quiser criar ou editar.")}
         </p>
       </div>
 
@@ -81,7 +101,7 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
           ? "Carregando..."
           : locked
             ? "Ver palpite"
-            : match.prediction
+            : currentMatch.prediction
               ? "Editar palpite"
               : "Abrir palpite"}
       </button>

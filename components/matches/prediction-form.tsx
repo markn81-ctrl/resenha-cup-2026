@@ -8,6 +8,8 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import { playerPositionShortLabels } from "@/lib/constants";
 import type { MatchCardData } from "@/types/app";
 
+type PredictionSnapshot = NonNullable<MatchCardData["prediction"]>;
+
 const outcomes = [
   { value: PredictionOutcome.HOME_WIN, label: "Time A vence" },
   { value: PredictionOutcome.DRAW, label: "Empate" },
@@ -27,7 +29,13 @@ const cardsRanges = [
   { value: CardsRange.FIVE_PLUS, label: "5+" }
 ];
 
-export function PredictionForm({ match }: { match: MatchCardData }) {
+export function PredictionForm({
+  match,
+  onSaved
+}: {
+  match: MatchCardData;
+  onSaved?: (prediction: PredictionSnapshot) => void;
+}) {
   const [message, setMessage] = useState<string | null>(null);
   const [hasSavedPrediction, setHasSavedPrediction] = useState(Boolean(match.prediction));
   const [pending, startTransition] = useTransition();
@@ -51,6 +59,24 @@ export function PredictionForm({ match }: { match: MatchCardData }) {
       onSubmit={(event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
+        const prediction: PredictionSnapshot = {
+          outcome: formData.get("outcome") as PredictionOutcome,
+          score: {
+            home: Number(formData.get("homeScore")),
+            away: Number(formData.get("awayScore"))
+          },
+          scorers: Array.from(
+            new Set(
+              [formData.get("scorer1"), formData.get("scorer2")]
+                .map((value) => String(value ?? "").trim())
+                .filter(Boolean)
+            )
+          ).slice(0, 2),
+          cardsEdge: formData.get("cardsEdge") as CardsEdge,
+          cardsRange: formData.get("cardsRange") as CardsRange,
+          points: match.prediction?.points
+        };
+
         startTransition(async () => {
           setMessage(null);
 
@@ -61,25 +87,18 @@ export function PredictionForm({ match }: { match: MatchCardData }) {
             },
             body: JSON.stringify({
               matchId: match.id,
-              outcome: formData.get("outcome"),
-              score: {
-                home: Number(formData.get("homeScore")),
-                away: Number(formData.get("awayScore"))
-              },
-              scorers: [formData.get("scorer1"), formData.get("scorer2")].filter(Boolean),
-              cardsEdge: formData.get("cardsEdge"),
-              cardsRange: formData.get("cardsRange")
+              outcome: prediction.outcome,
+              score: prediction.score,
+              scorers: prediction.scorers,
+              cardsEdge: prediction.cardsEdge,
+              cardsRange: prediction.cardsRange
             })
           });
 
           const payload = await response.json();
           if (response.ok) {
             setHasSavedPrediction(true);
-            setMessage(
-              isEditingPrediction
-                ? "Alteracoes salvas com sucesso. Voce ainda pode editar ate o lock."
-                : "Palpite salvo com sucesso. Voce ainda pode editar ate o lock."
-            );
+            onSaved?.(prediction);
             return;
           }
 
