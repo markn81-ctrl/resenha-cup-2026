@@ -3,6 +3,7 @@ import { Bell, UserCircle } from "lucide-react";
 import { Role } from "@prisma/client";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { SmartNavLink } from "@/components/layout/smart-nav-link";
+import { PushOptIn } from "@/components/notifications/push-opt-in";
 import { adminNavigation, playerNavigation } from "@/lib/constants";
 import { cn, getAvatarFallback, getDisplayName } from "@/lib/utils";
 import type { AppUserShell } from "@/types/app";
@@ -84,6 +85,7 @@ export function AppShell({
           </div>
 
           <div className="flex items-center justify-start gap-3 sm:justify-end">
+            <PushOptIn />
             <SmartNavLink
               href="/resenha"
               ariaLabel="Abrir resenha e alertas"

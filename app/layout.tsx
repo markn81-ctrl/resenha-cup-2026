@@ -15,7 +15,8 @@ const space = Space_Grotesk({
 export const metadata: Metadata = {
   title: "Resenha Cup 2026",
   description:
-    "Fantasy social da Copa 2026 com palpites, ranking ao vivo, feed de resenha e narração por IA."
+    "Fantasy social da Copa 2026 com palpites, ranking ao vivo, feed de resenha e narracao por IA.",
+  manifest: "/manifest.webmanifest"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

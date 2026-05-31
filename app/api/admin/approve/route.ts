@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendPushToUser } from "@/lib/push";
 
 const approvalSchema = z.object({
   userId: z.string().cuid(),
@@ -31,7 +32,7 @@ export async function PATCH(request: Request) {
       }
     });
 
-    await prisma.notification.create({
+    const notification = await prisma.notification.create({
       data: {
         userId: user.id,
         type:
@@ -48,6 +49,12 @@ export async function PATCH(request: Request) {
             : "O admin recusou seu acesso a esta liga privada.",
         href: parsed.data.approvalStatus === ApprovalStatus.APPROVED ? "/dashboard" : "/"
       }
+    });
+
+    await sendPushToUser(user.id, {
+      title: notification.title,
+      body: notification.body,
+      url: notification.href ?? "/"
     });
 
     await prisma.auditLog.create({

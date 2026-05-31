@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { generateAiCommentary } from "@/lib/ai";
 import { prisma } from "@/lib/prisma";
+import { sendPushToUsers } from "@/lib/push";
 
 export const PICK_LOCK_REMINDER_LEAD_MINUTES = 15;
 export const PICK_LOCK_REMINDER_ACTION = "pick_lock_reminder.sent";
@@ -199,6 +200,17 @@ export async function sendPickLockReminders(now = new Date()): Promise<PickLockR
         }
       });
     });
+
+    if (notifications.length) {
+      await sendPushToUsers(
+        notifications.map((notification) => notification.userId),
+        {
+          title: notifications[0].title,
+          body: notifications[0].body,
+          url: notifications[0].href
+        }
+      );
+    }
 
     summary.remindedMatches += 1;
     summary.createdNotifications += notifications.length;

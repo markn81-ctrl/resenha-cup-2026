@@ -1,6 +1,7 @@
-import { ApprovalStatus, FeedPostType, LeaderboardScope } from "@prisma/client";
+import { ApprovalStatus, FeedPostType, LeaderboardScope, NotificationType } from "@prisma/client";
 import { generateAiCommentary } from "@/lib/ai";
 import { prisma } from "@/lib/prisma";
+import { sendPushToUsers } from "@/lib/push";
 
 const DAILY_ENGAGEMENT_ACTION = "daily_world_cup_engagement.published";
 const WORLD_CUP_OPENING_DATE = new Date("2026-06-11T00:00:00.000Z");
@@ -71,7 +72,7 @@ export async function publishDailyWorldCupEngagementPost(now = new Date()) {
   }
 
   const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const [newUsers, totalUsers, approvedUsers, pendingUsers] = await Promise.all([
+  const [newUsers, totalUsers, approvedUserRows, pendingUsers] = await Promise.all([
     prisma.user.findMany({
       where: {
         createdAt: {
@@ -85,11 +86,15 @@ export async function publishDailyWorldCupEngagementPost(now = new Date()) {
       take: 5
     }),
     prisma.user.count(),
-    prisma.user.count({ where: { approvalStatus: ApprovalStatus.APPROVED } }),
+    prisma.user.findMany({
+      where: { approvalStatus: ApprovalStatus.APPROVED },
+      select: { id: true }
+    }),
     prisma.user.count({ where: { approvalStatus: ApprovalStatus.PENDING } })
   ]);
 
   const newMembers = newUsers.map((user) => user.name ?? user.username ?? "novo integrante");
+  const approvedUsers = approvedUserRows.length;
   const dailyTopic = pickDailyTopic(dateKey);
   const content = await generateAiCommentary({
     scope: LeaderboardScope.OVERALL,
@@ -151,8 +156,35 @@ export async function publishDailyWorldCupEngagementPost(now = new Date()) {
       }
     });
 
+    if (approvedUserRows.length) {
+      await tx.notification.createMany({
+        data: approvedUserRows.map((user) => ({
+          userId: user.id,
+          type: NotificationType.AI_MENTION,
+          title: "IAestagiaria movimentou a resenha",
+          body: `Faltam ${daysUntilWorldCup} dia(s) para a Copa. Tem provocacao nova no feed.`,
+          href: "/resenha",
+          metadata: {
+            source: "daily_world_cup_engagement",
+            postId: createdPost.id,
+            dateKey,
+            daysUntilWorldCup
+          }
+        }))
+      });
+    }
+
     return createdPost;
   });
+
+  await sendPushToUsers(
+    approvedUserRows.map((user) => user.id),
+    {
+      title: "IAestagiaria movimentou a resenha",
+      body: `Faltam ${daysUntilWorldCup} dia(s) para a Copa. Tem provocacao nova no feed.`,
+      url: "/resenha"
+    }
+  );
 
   return {
     skipped: false,
