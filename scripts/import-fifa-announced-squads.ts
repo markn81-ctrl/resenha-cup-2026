@@ -569,7 +569,7 @@ const squads: SquadImport[] = [
   {
     code: "NZL",
     status: "announced",
-    sourceUrl: "https://www-fifa.com.co/en/articles/new-zealand-squad-named",
+    sourceUrl: "https://www.fifa.com/es/tournaments/mens/worldcup/canadamexicousa2026/articles/nueva-zelanda-convocatoria",
     players: [
       ...players(PlayerPosition.GOALKEEPER, ["Max Crocombe", "Alex Paulsen", "Michael Woud"]),
       ...players(PlayerPosition.DEFENDER, [
