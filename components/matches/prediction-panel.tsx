@@ -67,7 +67,7 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
     setCurrentMatch(nextMatch);
     setLoadedMatch(nextMatch);
     setIsOpen(false);
-    setSuccessMessage("Palpite salvo. Voce ainda pode editar ate o lock.");
+    setSuccessMessage("Palpite salvo. Voce ainda pode editar ate 2 horas antes do inicio do jogo.");
   }
 
   if (isOpen && loadedMatch) {
