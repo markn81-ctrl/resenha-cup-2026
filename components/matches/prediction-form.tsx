@@ -29,6 +29,22 @@ const cardsRanges = [
   { value: CardsRange.FIVE_PLUS, label: "5+" }
 ];
 
+function deriveScoreOutcome(score: PredictionSnapshot["score"]) {
+  if (score.home > score.away) {
+    return PredictionOutcome.HOME_WIN;
+  }
+
+  if (score.home < score.away) {
+    return PredictionOutcome.AWAY_WIN;
+  }
+
+  return PredictionOutcome.DRAW;
+}
+
+function getOutcomeLabel(outcome: PredictionOutcome) {
+  return outcomes.find((item) => item.value === outcome)?.label ?? "resultado escolhido";
+}
+
 export function PredictionForm({
   match,
   onSaved
@@ -37,6 +53,7 @@ export function PredictionForm({
   onSaved?: (prediction: PredictionSnapshot) => void;
 }) {
   const [message, setMessage] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [hasSavedPrediction, setHasSavedPrediction] = useState(Boolean(match.prediction));
   const [pending, startTransition] = useTransition();
   const isEditingPrediction = Boolean(match.prediction) || hasSavedPrediction;
@@ -56,6 +73,12 @@ export function PredictionForm({
 
   return (
     <form
+      noValidate
+      onChange={() => {
+        if (validationError) {
+          setValidationError(null);
+        }
+      }}
       onSubmit={(event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
@@ -76,9 +99,21 @@ export function PredictionForm({
           cardsRange: formData.get("cardsRange") as CardsRange,
           points: match.prediction?.points
         };
+        const scoreOutcome = deriveScoreOutcome(prediction.score);
+
+        if (prediction.outcome !== scoreOutcome) {
+          setMessage(null);
+          setValidationError(
+            `O placar ${prediction.score.home} x ${prediction.score.away} indica "${getOutcomeLabel(
+              scoreOutcome
+            )}", mas voce escolheu "${getOutcomeLabel(prediction.outcome)}". Ajuste o vencedor ou o placar para salvar.`
+          );
+          return;
+        }
 
         startTransition(async () => {
           setMessage(null);
+          setValidationError(null);
 
           const response = await fetch("/api/predictions", {
             method: "POST",
@@ -149,7 +184,10 @@ export function PredictionForm({
           name="outcome"
           defaultValue={match.prediction?.outcome ?? PredictionOutcome.HOME_WIN}
           disabled={locked || pending}
-          className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+          aria-invalid={Boolean(validationError)}
+          className={`rounded-2xl border bg-slate-950/40 px-4 py-3 ${
+            validationError ? "border-rose-400/80 ring-2 ring-rose-500/20" : "border-white/10"
+          }`}
         >
           {outcomes.map((item) => (
             <option key={item.value} value={item.value}>
@@ -166,7 +204,10 @@ export function PredictionForm({
             max={20}
             defaultValue={match.prediction?.score.home ?? 1}
             disabled={locked || pending}
-            className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+            aria-invalid={Boolean(validationError)}
+            className={`rounded-2xl border bg-slate-950/40 px-4 py-3 ${
+              validationError ? "border-rose-400/80 ring-2 ring-rose-500/20" : "border-white/10"
+            }`}
           />
           <input
             name="awayScore"
@@ -175,7 +216,10 @@ export function PredictionForm({
             max={20}
             defaultValue={match.prediction?.score.away ?? 0}
             disabled={locked || pending}
-            className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+            aria-invalid={Boolean(validationError)}
+            className={`rounded-2xl border bg-slate-950/40 px-4 py-3 ${
+              validationError ? "border-rose-400/80 ring-2 ring-rose-500/20" : "border-white/10"
+            }`}
           />
         </div>
 
@@ -273,7 +317,23 @@ export function PredictionForm({
         </LoadingButton>
       </div>
 
-      {message ? <p className="text-sm text-brand-100">{message}</p> : null}
+      {validationError ? (
+        <div
+          role="alert"
+          className="rounded-2xl border border-rose-400/60 bg-rose-500/12 px-4 py-3 text-sm font-semibold leading-6 text-rose-100"
+        >
+          {validationError}
+        </div>
+      ) : null}
+
+      {message ? (
+        <div
+          role="alert"
+          className="rounded-2xl border border-rose-400/60 bg-rose-500/12 px-4 py-3 text-sm font-semibold leading-6 text-rose-100"
+        >
+          {message}
+        </div>
+      ) : null}
     </form>
   );
 }
