@@ -19,6 +19,7 @@
     "promote:admin": "node scripts/promote-admin.mjs",
     "preflight:prod": "node scripts/preflight-production.mjs",
     "backfill:players": "tsx scripts/backfill-team-players.ts",
+    "import:fifa-squads": "tsx scripts/import-fifa-announced-squads.ts",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate"
