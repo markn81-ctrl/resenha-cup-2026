@@ -661,7 +661,9 @@ export function AdminPanel({ data }: { data: AdminView }) {
                   }
 
                   setAiPreview(payload.preview ?? null);
-                  setAiFeedback("Post da IAestagiaria publicado no feed com sucesso.");
+                  setAiFeedback(
+                    `Post da IAestagiaria publicado no feed. Notificacoes criadas para ${payload.notifiedUsers ?? 0} usuarios; push enviado para ${payload.push?.sent ?? 0} dispositivo(s).`
+                  );
                 })
               }
               className="rounded-2xl bg-accent-300 px-5 py-3 font-semibold text-slate-950 disabled:opacity-60"
