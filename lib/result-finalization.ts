@@ -1,9 +1,9 @@
 import {
   LeaderboardScope,
   MatchStatus,
+  Prisma,
   type CardsEdge,
-  type CardsRange,
-  type Prisma
+  type CardsRange
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildLeaderboardSummaries, calculateMovement } from "@/lib/ranking";
@@ -35,6 +35,13 @@ type EvaluatedPrediction = {
   match: {
     phase: Parameters<typeof calculatePredictionScore>[0]["phase"];
   };
+};
+
+type PredictionUpdate = {
+  id: string;
+  points: number;
+  streakApplied: number;
+  multiplier: number;
 };
 
 function resultMatchesInput(
@@ -86,6 +93,7 @@ async function rebuildRankings(tx: Prisma.TransactionClient) {
 
   const streaks = new Map<string, number>();
   const evaluated: EvaluatedPrediction[] = [];
+  const predictionUpdates: PredictionUpdate[] = [];
   const evaluatedAt = new Date();
 
   for (const match of finishedMatches) {
@@ -125,17 +133,39 @@ async function rebuildRankings(tx: Prisma.TransactionClient) {
         }
       });
 
-      await tx.prediction.update({
-        where: { id: prediction.id },
-        data: {
-          points: breakdown.total,
-          streakApplied: currentStreak,
-          multiplier: breakdown.multiplier,
-          isLockedSnapshot: true,
-          evaluatedAt
-        }
+      predictionUpdates.push({
+        id: prediction.id,
+        points: breakdown.total,
+        streakApplied: currentStreak,
+        multiplier: breakdown.multiplier
       });
     }
+  }
+
+  if (predictionUpdates.length) {
+    const rows = Prisma.join(
+      predictionUpdates.map((update) => Prisma.sql`(
+        ${update.id}::text,
+        ${update.points}::double precision,
+        ${update.streakApplied}::integer,
+        ${update.multiplier}::double precision,
+        ${evaluatedAt}::timestamp with time zone
+      )`)
+    );
+
+    await tx.$executeRaw`
+      UPDATE "Prediction" AS prediction
+      SET
+        "points" = updates."points",
+        "streakApplied" = updates."streakApplied",
+        "multiplier" = updates."multiplier",
+        "isLockedSnapshot" = TRUE,
+        "evaluatedAt" = updates."evaluatedAt"
+      FROM (
+        VALUES ${rows}
+      ) AS updates("id", "points", "streakApplied", "multiplier", "evaluatedAt")
+      WHERE prediction."id" = updates."id"
+    `;
   }
 
   const scopes = [
@@ -197,83 +227,89 @@ export async function finalizeMatchResult(
   input: FinalResultInput,
   actorId?: string | null
 ) {
-  const finalized = await prisma.$transaction(async (tx) => {
-    const match = await tx.match.findUnique({
-      where: { id: input.matchId },
-      include: {
-        result: {
-          include: {
-            score: true
+  const finalized = await prisma.$transaction(
+    async (tx) => {
+      const match = await tx.match.findUnique({
+        where: { id: input.matchId },
+        include: {
+          result: {
+            include: {
+              score: true
+            }
           }
         }
-      }
-    });
+      });
 
-    if (!match) {
-      throw new Error("Jogo nao encontrado.");
-    }
-
-    if (match.result) {
-      if (!resultMatchesInput(match.result, input)) {
-        throw new Error(
-          "Este jogo ja possui outro resultado oficial. Use um fluxo de correcao auditada."
-        );
+      if (!match) {
+        throw new Error("Jogo nao encontrado.");
       }
+
+      if (match.result) {
+        if (!resultMatchesInput(match.result, input)) {
+          throw new Error(
+            "Este jogo ja possui outro resultado oficial. Use um fluxo de correcao auditada."
+          );
+        }
+
+        return {
+          matchNumber: match.number,
+          alreadyFinalized: true,
+          score: input.score,
+          ...(await rebuildRankings(tx))
+        };
+      }
+
+      const score = await tx.score.create({
+        data: input.score
+      });
+
+      await tx.matchResult.create({
+        data: {
+          matchId: match.id,
+          scoreId: score.id,
+          outcome: deriveOutcome(input.score),
+          scorers: input.scorers,
+          cardsEdge: input.cardsEdge,
+          cardsRange: input.cardsRange,
+          finishedAt: new Date()
+        }
+      });
+
+      await tx.match.update({
+        where: { id: match.id },
+        data: {
+          status: MatchStatus.FINISHED
+        }
+      });
+
+      const ranking = await rebuildRankings(tx);
+
+      await tx.auditLog.create({
+        data: {
+          actorId: actorId ?? null,
+          action: "match.result.finalized",
+          entityType: "Match",
+          entityId: match.id,
+          payload: {
+            matchNumber: match.number,
+            ...input,
+            ...ranking
+          }
+        }
+      });
 
       return {
         matchNumber: match.number,
-        alreadyFinalized: true,
+        alreadyFinalized: false,
         score: input.score,
-        ...(await rebuildRankings(tx))
+        ...ranking
       };
+    },
+    {
+      maxWait: 10_000,
+      timeout: 30_000
     }
-
-    const score = await tx.score.create({
-      data: input.score
-    });
-
-    await tx.matchResult.create({
-      data: {
-        matchId: match.id,
-        scoreId: score.id,
-        outcome: deriveOutcome(input.score),
-        scorers: input.scorers,
-        cardsEdge: input.cardsEdge,
-        cardsRange: input.cardsRange,
-        finishedAt: new Date()
-      }
-    });
-
-    await tx.match.update({
-      where: { id: match.id },
-      data: {
-        status: MatchStatus.FINISHED
-      }
-    });
-
-    const ranking = await rebuildRankings(tx);
-
-    await tx.auditLog.create({
-      data: {
-        actorId: actorId ?? null,
-        action: "match.result.finalized",
-        entityType: "Match",
-        entityId: match.id,
-        payload: {
-          matchNumber: match.number,
-          ...input,
-          ...ranking
-        }
-      }
-    });
-
-    return {
-      matchNumber: match.number,
-      alreadyFinalized: false,
-      score: input.score,
-      ...ranking
-    };
-  });
+  );
 
   await Promise.allSettled(
     [
