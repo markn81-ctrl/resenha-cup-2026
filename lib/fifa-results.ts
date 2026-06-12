@@ -122,6 +122,10 @@ function normalizeCode(value?: string | null) {
   return value?.trim().toUpperCase() ?? "";
 }
 
+export function formatFifaApiDate(value: Date) {
+  return value.toISOString().replace(".000Z", "Z");
+}
+
 function bookingColor(card?: number | null): "YELLOW" | "RED" | "OTHER" {
   if (card === 1) {
     return "YELLOW";
@@ -274,7 +278,18 @@ async function fetchFifaJson<T>(url: URL): Promise<T> {
     throw new Error(`A FIFA respondeu com status ${response.status}.`);
   }
 
-  return (await response.json()) as T;
+  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+  const body = await response.text();
+
+  if (!contentType.includes("application/json")) {
+    throw new Error("A FIFA rejeitou os parametros da consulta. Tente novamente.");
+  }
+
+  try {
+    return JSON.parse(body) as T;
+  } catch {
+    throw new Error("A FIFA retornou dados em formato inesperado. Tente novamente.");
+  }
 }
 
 export async function fetchOfficialResultPreview(matchId: string) {
@@ -298,8 +313,8 @@ export async function fetchOfficialResultPreview(matchId: string) {
   const calendarUrl = new URL(`${FIFA_API_BASE_URL}/calendar/matches`);
   calendarUrl.searchParams.set("idCompetition", FIFA_WORLD_CUP_COMPETITION_ID);
   calendarUrl.searchParams.set("idSeason", FIFA_WORLD_CUP_2026_SEASON_ID);
-  calendarUrl.searchParams.set("from", subHours(match.startsAt, 12).toISOString());
-  calendarUrl.searchParams.set("to", addHours(match.startsAt, 18).toISOString());
+  calendarUrl.searchParams.set("from", formatFifaApiDate(subHours(match.startsAt, 12)));
+  calendarUrl.searchParams.set("to", formatFifaApiDate(addHours(match.startsAt, 18)));
   calendarUrl.searchParams.set("language", "en");
   calendarUrl.searchParams.set("count", "100");
 

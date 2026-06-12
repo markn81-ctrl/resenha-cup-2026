@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { CardsEdge, CardsRange } from "@prisma/client";
-import { parseFifaMatchDetails, type FifaMatchDetails } from "../lib/fifa-results";
+import {
+  formatFifaApiDate,
+  parseFifaMatchDetails,
+  type FifaMatchDetails
+} from "../lib/fifa-results";
 
 const fixture: FifaMatchDetails = {
   IdCompetition: "17",
@@ -67,6 +71,7 @@ assert.equal(result.cards.edge, CardsEdge.EQUAL);
 assert.equal(result.cards.range, CardsRange.ONE_TWO);
 assert.equal(result.cards.events[1]?.color, "RED");
 assert.deepEqual(result.warnings, []);
+assert.equal(formatFifaApiDate(new Date("2026-06-12T02:00:00.000Z")), "2026-06-12T02:00:00Z");
 
 assert.throws(
   () =>
