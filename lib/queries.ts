@@ -87,7 +87,7 @@ function buildEmptyDashboard(userId = "unknown"): DashboardView {
       tier: PlayerTier.AVERAGE
     },
     rivalry: null,
-    topFive: [],
+    topTen: [],
     upcomingMatches: [],
     hotFeed: []
   };
@@ -120,7 +120,7 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
   }
 
   try {
-    const [user, standings, topFive, matches, feed, rivalry] = await Promise.all([
+    const [user, standings, topTen, leaderboardCount, matches, feed, rivalry] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId } }),
       prisma.leaderboard.findFirst({
         where: { userId, scope: LeaderboardScope.OVERALL },
@@ -130,7 +130,10 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
         where: { scope: LeaderboardScope.OVERALL },
         include: { user: true },
         orderBy: [{ rankPosition: "asc" }],
-        take: 5
+        take: 10
+      }),
+      prisma.leaderboard.count({
+        where: { scope: LeaderboardScope.OVERALL }
       }),
       prisma.match.findMany({
         where: {
@@ -203,7 +206,7 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
           ? buildPlayerStatus({
               scope: LeaderboardScope.OVERALL,
               rankPosition: standings.rankPosition,
-              totalPlayers: Math.max(topFive.length, standings.rankPosition)
+              totalPlayers: Math.max(leaderboardCount, standings.rankPosition)
             }).tier
           : PlayerTier.AVERAGE
       },
@@ -226,7 +229,7 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
                 : "Rivalidade ativa na briga por posicoes"
           }
         : null,
-      topFive: topFive.map((row) => ({
+      topTen: topTen.map((row) => ({
         id: row.user.id,
         name: row.user.name ?? "Participante",
         username: row.user.username ?? "user",
@@ -234,7 +237,7 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
         tier: buildPlayerStatus({
           scope: LeaderboardScope.OVERALL,
           rankPosition: row.rankPosition,
-          totalPlayers: topFive.length
+          totalPlayers: leaderboardCount
         }).tier
       })),
       upcomingMatches: matches.map((match) => ({

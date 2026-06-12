@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Space_Grotesk } from "next/font/google";
+import { NavigationFeedbackProvider } from "@/components/layout/navigation-feedback";
 import "@/app/globals.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -25,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${bricolage.variable} ${space.variable} font-[family-name:var(--font-body)] text-ink antialiased`}
       >
-        {children}
+        <NavigationFeedbackProvider>{children}</NavigationFeedbackProvider>
       </body>
     </html>
   );

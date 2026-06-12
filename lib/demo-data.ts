@@ -349,7 +349,7 @@ export const demoDashboard: DashboardView = {
     scope: LeaderboardScope.OVERALL,
     trendLabel: "Duelo direto por aproximacao no ranking"
   },
-  topFive: demoLeaderboard.OVERALL.map((row) => ({
+  topTen: demoLeaderboard.OVERALL.map((row) => ({
     id: row.userId,
     name: row.name,
     username: row.username,

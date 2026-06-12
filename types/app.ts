@@ -56,7 +56,7 @@ export type DashboardView = {
     scope: LeaderboardScope;
     trendLabel: string;
   } | null;
-  topFive: Array<{
+  topTen: Array<{
     id: string;
     name: string;
     username: string;

@@ -1,11 +1,11 @@
 import Image from "next/image";
-import { Bell, UserCircle } from "lucide-react";
+import { Bell, Minus, TrendingDown, TrendingUp, UserCircle } from "lucide-react";
 import { Role } from "@prisma/client";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { SmartNavLink } from "@/components/layout/smart-nav-link";
 import { PushOptIn } from "@/components/notifications/push-opt-in";
 import { adminNavigation, playerNavigation } from "@/lib/constants";
-import { cn, getAvatarFallback, getDisplayName } from "@/lib/utils";
+import { cn, formatPoints, getAvatarFallback, getDisplayName } from "@/lib/utils";
 import type { AppUserShell } from "@/types/app";
 
 type AppShellProps = {
@@ -14,6 +14,12 @@ type AppShellProps = {
   currentPath: string;
   user?: AppUserShell | null;
   unreadNotifications?: number;
+  standing?: {
+    position: number;
+    totalPoints: number;
+    movement: number;
+    pointsToNext: number | null;
+  };
   children: React.ReactNode;
 };
 
@@ -23,6 +29,7 @@ export function AppShell({
   currentPath,
   user,
   unreadNotifications = 0,
+  standing,
   children
 }: AppShellProps) {
   const displayName = getDisplayName({
@@ -34,7 +41,7 @@ export function AppShell({
   return (
     <div className="mx-auto min-h-screen w-full max-w-7xl px-3 pb-24 pt-3 sm:px-6 sm:pb-28 sm:pt-6 lg:px-8">
       <header className="mb-4 flex flex-col gap-3 sm:mb-6 sm:gap-4">
-        <div className="glass flex flex-col gap-4 rounded-[24px] px-4 py-4 sm:rounded-[28px] sm:px-5 sm:py-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="glass flex flex-col gap-4 rounded-[24px] px-4 py-4 sm:rounded-[28px] sm:px-5 sm:py-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <div className="shrink-0">
               {user?.image ? (
@@ -73,7 +80,7 @@ export function AppShell({
             </div>
           </div>
 
-          <div className="min-w-0 flex-1 lg:px-4">
+          <div className="min-w-0 flex-1 xl:px-4">
             <p className="text-[11px] uppercase tracking-[0.24em] text-brand-200 sm:text-xs sm:tracking-[0.28em]">Resenha Cup 2026</p>
             <h1 className="mt-1 font-[family-name:var(--font-heading)] text-2xl font-bold leading-tight sm:text-3xl">
               {title}
@@ -83,6 +90,50 @@ export function AppShell({
               Bem-vindo a Resenha Cup 2026. Qual o palpite de hoje?
             </p>
           </div>
+
+          {standing ? (
+            <div className="grid shrink-0 grid-cols-2 gap-2 sm:min-w-[290px]">
+              <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
+                  Posicao atual
+                </p>
+                <div className="mt-1 flex items-center gap-2">
+                  <p className="font-[family-name:var(--font-heading)] text-3xl font-bold">
+                    #{standing.position || "-"}
+                  </p>
+                  <span className="flex items-center gap-1 text-xs text-slate-300">
+                    {standing.movement > 0 ? (
+                      <TrendingUp className="h-3.5 w-3.5 text-emerald-300" />
+                    ) : standing.movement < 0 ? (
+                      <TrendingDown className="h-3.5 w-3.5 text-rose-300" />
+                    ) : (
+                      <Minus className="h-3.5 w-3.5" />
+                    )}
+                    {standing.movement > 0
+                      ? `+${standing.movement}`
+                      : standing.movement < 0
+                        ? standing.movement
+                        : "Estavel"}
+                  </span>
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-brand-300/20 bg-brand-400/10 px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-brand-100">
+                  Pontuacao
+                </p>
+                <p className="mt-1 font-[family-name:var(--font-heading)] text-3xl font-bold">
+                  {formatPoints(standing.totalPoints)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-slate-300">
+                  {standing.position === 0
+                    ? "Aguardando ranking"
+                    : standing.pointsToNext
+                      ? `${formatPoints(standing.pointsToNext)} pts para subir`
+                      : "Na ponta da tabela"}
+                </p>
+              </div>
+            </div>
+          ) : null}
 
           <div className="flex items-center justify-start gap-3 sm:justify-end">
             <PushOptIn />

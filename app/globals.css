@@ -69,3 +69,23 @@ select {
   box-shadow: 0 24px 60px rgba(4, 12, 24, 0.45);
   backdrop-filter: blur(20px);
 }
+
+@keyframes navigation-ball-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.navigation-ball {
+  display: inline-block;
+  animation: navigation-ball-spin 0.85s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navigation-ball {
+    animation: none;
+  }
+}

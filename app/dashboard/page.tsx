@@ -1,11 +1,11 @@
-import Link from "next/link";
 import { ApprovalStatus } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getDashboardData, getUnreadNotificationsCount } from "@/lib/queries";
 import { AppShell } from "@/components/layout/app-shell";
-import { OverviewCards } from "@/components/dashboard/overview-cards";
+import { TopTenPreview } from "@/components/dashboard/top-ten-preview";
 import { RivalryCard } from "@/components/dashboard/rivalry-card";
+import { SmartNavLink } from "@/components/layout/smart-nav-link";
 import { Panel } from "@/components/ui/panel";
 import { MatchCard } from "@/components/matches/match-card";
 import { FeedPostCard } from "@/components/feed/feed-post-card";
@@ -33,9 +33,10 @@ export default async function DashboardPage() {
       currentPath="/dashboard"
       user={session?.user}
       unreadNotifications={unreadNotifications}
+      standing={data.currentStanding}
     >
       <div className="space-y-4">
-        <OverviewCards standing={data.currentStanding} rivalry={data.rivalry} topFive={data.topFive} />
+        <TopTenPreview rows={data.topTen} currentUserId={session.user.id} />
 
         <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-4">
@@ -46,12 +47,12 @@ export default async function DashboardPage() {
                   Palpite da vez
                 </h2>
               </div>
-              <Link
+              <SmartNavLink
                 href="/matches"
                 className="rounded-2xl bg-brand-400 px-4 py-3 text-center text-sm font-semibold text-slate-950 transition hover:bg-brand-300"
               >
                 Ver todos os palpites
-              </Link>
+              </SmartNavLink>
             </Panel>
             {data.upcomingMatches.slice(0, 1).map((match) => (
               <MatchCard key={match.id} match={match} />
@@ -103,12 +104,12 @@ export default async function DashboardPage() {
                   A mesa ta falando
                 </h2>
               </div>
-              <Link
+              <SmartNavLink
                 href="/resenha"
                 className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-slate-100 transition hover:bg-white/10"
               >
                 Abrir resenha
-              </Link>
+              </SmartNavLink>
             </Panel>
             {data.hotFeed.slice(0, 1).map((post) => (
               <FeedPostCard key={post.id} post={post} />

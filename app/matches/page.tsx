@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ApprovalStatus } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
@@ -6,6 +5,7 @@ import { getMatchesData, getUnreadNotificationsCount } from "@/lib/queries";
 import { AppShell } from "@/components/layout/app-shell";
 import { MatchCard } from "@/components/matches/match-card";
 import { Panel } from "@/components/ui/panel";
+import { SmartNavLink } from "@/components/layout/smart-nav-link";
 
 export default async function MatchesPage() {
   const session = await auth();
@@ -42,12 +42,12 @@ export default async function MatchesPage() {
               Vencedor vale +3, placar exato +6, artilheiro +3 cada, cartoes somam bonus e mata-mata aplica multiplicador.
             </p>
           </div>
-          <Link
+          <SmartNavLink
             href="/rules"
             className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-slate-100 transition hover:bg-white/10"
           >
             Ver regra completa
-          </Link>
+          </SmartNavLink>
         </Panel>
         {matches.map((match) => (
           <MatchCard key={match.id} match={match} />

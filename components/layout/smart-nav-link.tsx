@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import type { MouseEvent, ReactNode } from "react";
 import { useRef } from "react";
+import { useNavigationFeedback } from "@/components/layout/navigation-feedback";
 
 const prefetchedHrefs = new Set<string>();
 
@@ -16,6 +17,8 @@ type SmartNavLinkProps = {
 
 export function SmartNavLink({ href, className, ariaLabel, children }: SmartNavLinkProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const { startNavigation } = useNavigationFeedback();
   const prefetchTimer = useRef<number | null>(null);
 
   function prefetch() {
@@ -47,12 +50,28 @@ export function SmartNavLink({ href, className, ariaLabel, children }: SmartNavL
     prefetchTimer.current = null;
   }
 
+  function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      pathname === href
+    ) {
+      return;
+    }
+
+    startNavigation();
+  }
+
   return (
     <Link
       href={href}
       prefetch={false}
       aria-label={ariaLabel}
       className={className}
+      onClick={handleClick}
       onFocus={schedulePrefetch}
       onPointerEnter={schedulePrefetch}
       onPointerLeave={cancelScheduledPrefetch}
