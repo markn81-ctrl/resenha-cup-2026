@@ -11,7 +11,7 @@
     "start": "next start",
     "lint": "next lint",
     "release:check": "npm run lint && tsc --noEmit && node scripts/preflight-production.mjs",
-    "test": "node tests/scoring.validation.mjs && node tests/locks.validation.mjs && tsx tests/schedule.validation.ts",
+    "test": "tsx tests/scoring.test.ts && tsx tests/ranking.test.ts && node tests/locks.validation.mjs && tsx tests/schedule.validation.ts",
     "seed": "tsx prisma/seed.demo.ts",
     "seed:prod": "tsx prisma/seed.production.ts",
     "reset:launch": "node scripts/reset-launch.mjs",
@@ -20,6 +20,9 @@
     "preflight:prod": "node scripts/preflight-production.mjs",
     "backfill:players": "tsx scripts/backfill-team-players.ts",
     "import:fifa-squads": "tsx scripts/import-fifa-announced-squads.ts",
+    "finalize:result": "tsx scripts/finalize-match-result.ts",
+    "verify:ranking": "tsx scripts/verify-ranking-integrity.ts",
+    "verify:official-update": "tsx scripts/verify-official-update.ts",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate"

@@ -365,10 +365,11 @@ export function AdminPanel({ data }: { data: AdminView }) {
         <Panel>
           <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Simulador de resultado</p>
           <h3 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-bold">
-            Validar pontuacao antes da Copa
+            Conferir e finalizar resultado
           </h3>
           <p className="mt-2 text-sm text-slate-300">
-            Escolha um jogo aberto, monte um resultado ficticio e veja quantos pontos cada usuario faria em vencedor, placar, artilheiros, cartoes e bonus. A simulacao nao grava nada no banco.
+            Simule primeiro para conferir a contagem. Depois, confirme o resultado oficial para
+            finalizar o jogo e atualizar pontuacao e ranking.
           </p>
 
           <div className="mt-4 grid gap-3">
@@ -481,6 +482,60 @@ export function AdminPanel({ data }: { data: AdminView }) {
               className="rounded-2xl bg-brand-400 px-5 py-3 font-semibold text-slate-950 disabled:opacity-60"
             >
               {pending ? "Simulando..." : "Simular resultado"}
+            </button>
+
+            <button
+              type="button"
+              disabled={pending || !simulationPreview || simulationPreview.match.id !== simulationMatchId}
+              onClick={() => {
+                const confirmed = window.confirm(
+                  "Confirmar este resultado como oficial? O jogo sera finalizado e o ranking sera recalculado."
+                );
+
+                if (!confirmed) {
+                  return;
+                }
+
+                startTransition(async () => {
+                  setSimulationFeedback(null);
+                  const response = await fetch("/api/admin/finalize-result", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                      matchId: simulationMatchId,
+                      score: {
+                        home: simulationHomeScore,
+                        away: simulationAwayScore
+                      },
+                      scorers: simulationScorers
+                        .split(",")
+                        .map((item) => item.trim())
+                        .filter(Boolean),
+                      cardsEdge: simulationCardsEdge,
+                      cardsRange: simulationCardsRange
+                    })
+                  });
+                  const payload = await response.json();
+
+                  if (!response.ok) {
+                    setSimulationFeedback(
+                      payload.error ?? "Nao foi possivel finalizar o resultado."
+                    );
+                    return;
+                  }
+
+                  setSimulationPreview(null);
+                  setSimulationFeedback(
+                    `Jogo ${payload.result.matchNumber} finalizado. ${payload.result.evaluatedPredictions} palpites avaliados e ranking atualizado.`
+                  );
+                  router.refresh();
+                });
+              }}
+              className="rounded-2xl border border-emerald-300/30 bg-emerald-400/15 px-5 py-3 font-semibold text-emerald-100 disabled:opacity-40"
+            >
+              {pending ? "Processando..." : "Confirmar resultado oficial"}
             </button>
           </div>
 

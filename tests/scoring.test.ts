@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { CardsEdge, CardsRange, Phase, PredictionOutcome } from "@prisma/client";
 import {
   calculatePredictionScore,
+  countScorerHits,
   deriveCardsEdge,
   deriveCardsRange,
-  deriveOutcome
+  deriveOutcome,
+  normalizePlayerName
 } from "@/lib/scoring";
 
 const basePrediction = {
@@ -105,6 +107,17 @@ runCase("caps scorer points at two players even if more names overlap", () => {
 
   assert.equal(breakdown.scorers, 6);
   assert.equal(breakdown.total, 23);
+});
+
+runCase("matches scorer names despite accents, punctuation and uppercase surnames", () => {
+  assert.equal(normalizePlayerName("Julián QUIÑONES"), "julian quinones");
+  assert.equal(
+    countScorerHits(
+      ["Raul Jimenez", "Julián Quiñones"],
+      ["Raul JIMENEZ", "Julian QUINONES"]
+    ),
+    2
+  );
 });
 
 runCase("awards partial card points when only the card edge is correct", () => {

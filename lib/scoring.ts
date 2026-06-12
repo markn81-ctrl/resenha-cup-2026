@@ -22,6 +22,23 @@ export type ScoreBreakdown = {
   winnerHit: boolean;
 };
 
+export function normalizePlayerName(name: string) {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+export function countScorerHits(predictedScorers: string[], resultScorers: string[]) {
+  const normalizedResultScorers = new Set(resultScorers.map(normalizePlayerName));
+
+  return predictedScorers.filter((scorer) =>
+    normalizedResultScorers.has(normalizePlayerName(scorer))
+  ).length;
+}
+
 export function deriveOutcome(score: Pick<Score, "home" | "away">): PredictionOutcome {
   if (score.home > score.away) {
     return PredictionOutcome.HOME_WIN;
@@ -73,9 +90,7 @@ export function calculatePredictionScore(args: {
     args.prediction.score.home === args.result.score.home &&
     args.prediction.score.away === args.result.score.away;
 
-  const scorerHits = args.prediction.scorers.filter((scorer) =>
-    args.result.scorers.includes(scorer)
-  ).length;
+  const scorerHits = countScorerHits(args.prediction.scorers, args.result.scorers);
 
   const cardsEdgeHit = args.prediction.cardsEdge === args.result.cardsEdge;
   const cardsRangeHit = args.prediction.cardsRange === args.result.cardsRange;

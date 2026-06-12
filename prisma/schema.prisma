@@ -232,7 +232,7 @@ model Prediction {
   scorers          String[]
   cardsEdge        CardsEdge
   cardsRange       CardsRange
-  points           Int                @default(0)
+  points           Float              @default(0)
   streakApplied    Int                @default(0)
   multiplier       Float              @default(1)
   isLockedSnapshot Boolean            @default(false)
@@ -276,19 +276,19 @@ model Leaderboard {
   id               String           @id @default(cuid())
   userId           String
   scope            LeaderboardScope
-  totalPoints      Int              @default(0)
+  totalPoints      Float            @default(0)
   exactScores      Int              @default(0)
   correctWinners   Int              @default(0)
   correctScorers   Int              @default(0)
   rankPosition     Int              @default(0)
   previousPosition Int?
   movement         Int              @default(0)
-  pointsToNext     Int?
+  pointsToNext     Float?
   snapshotAt       DateTime         @default(now())
   user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([scope, rankPosition])
-  @@index([userId, scope])
+  @@unique([userId, scope])
 }
 
 model FeedPost {
@@ -366,6 +366,7 @@ model PlayerStatus {
   user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([scope, rankPosition])
+  @@unique([userId, scope])
 }
 
 model Notification {

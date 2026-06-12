@@ -52,8 +52,9 @@ export default function TermsPage() {
             recreativos, sem efeito sobre a pontuacao oficial.
           </p>
           <p>
-            O administrador pode aprovar acessos, simular resultados, publicar posts da IA,
-            alterar nomes de jogadores e executar rotinas operacionais previstas no sistema.
+            O administrador pode aprovar acessos, simular e registrar resultados oficiais,
+            publicar posts da IA, alterar nomes de jogadores e executar rotinas operacionais
+            previstas no sistema.
           </p>
         </section>
 

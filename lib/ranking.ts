@@ -65,7 +65,11 @@ export function buildLeaderboardSummaries(
       return b.exactScores - a.exactScores;
     }
 
-    return b.correctWinners - a.correctWinners;
+    if (b.correctWinners !== a.correctWinners) {
+      return b.correctWinners - a.correctWinners;
+    }
+
+    return a.userId.localeCompare(b.userId);
   });
 
   return ordered.map((row, index) => {

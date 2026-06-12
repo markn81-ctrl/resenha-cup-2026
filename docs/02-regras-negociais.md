@@ -5,7 +5,7 @@
 - Todo usuario novo entra como `PENDING`.
 - Apenas usuarios `APPROVED` acessam as areas internas.
 - Rotas administrativas exigem `Role.ADMIN`.
-- O admin pode aprovar, rejeitar, simular resultados, publicar posts de IA e executar reset de lancamento.
+- O admin pode aprovar, rejeitar, simular e finalizar resultados, publicar posts de IA e executar reset de lancamento.
 
 ## Palpites
 
@@ -42,3 +42,11 @@
 ## Ranking
 
 O ranking ordena por pontos totais. Em empate, usa placares exatos e vencedores corretos como criterios adicionais.
+
+## Resultados oficiais
+
+- O admin simula o resultado antes da confirmacao para revisar a pontuacao projetada.
+- A confirmacao grava placar, artilheiros e cartoes, marca o jogo como finalizado e recalcula todas as sequencias e rankings.
+- Uma segunda confirmacao com os mesmos dados e idempotente.
+- Um resultado diferente para jogo ja finalizado exige um fluxo de correcao auditada.
+- A atualizacao de resultado nunca altera placar, vencedor, artilheiros ou cartoes informados nos palpites.

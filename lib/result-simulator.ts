@@ -1,5 +1,5 @@
 import { LeaderboardScope, MatchStatus, type CardsEdge, type CardsRange } from "@prisma/client";
-import { calculatePredictionScore, deriveOutcome } from "@/lib/scoring";
+import { calculatePredictionScore, countScorerHits, deriveOutcome } from "@/lib/scoring";
 import { prisma } from "@/lib/prisma";
 import type { AdminSimulationView } from "@/types/app";
 
@@ -149,7 +149,7 @@ export async function simulateMatchResult(
     });
 
     const scorerHits = Math.min(
-      prediction.scorers.filter((scorer) => simulatedResult.scorers.includes(scorer)).length,
+      countScorerHits(prediction.scorers, simulatedResult.scorers),
       2
     );
 

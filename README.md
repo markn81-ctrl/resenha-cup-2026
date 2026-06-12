@@ -262,7 +262,7 @@ O endpoint retorna:
 
 ## Proximos passos recomendados
 
-- Agendar job para recalcular ranking ao fim de cada jogo e rodada
+- Automatizar a consulta de resultados oficiais antes da confirmacao administrativa
 - Conectar webhook ou cron para gerar posts da IA automaticamente
 - Adicionar upload de avatar e preferencia de timezone por usuario
-- Incluir testes para engine de pontuacao, locks e middleware de acesso
+- Ampliar testes de integracao para fechamento de resultado e ranking

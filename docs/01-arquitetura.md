@@ -28,4 +28,6 @@
 3. Admin aprova ou rejeita.
 4. Usuario aprovado acessa dashboard, jogos, ranking, feed, alertas e perfil.
 5. Palpites podem ser criados ou editados ate o `lockAt`.
-6. Resultados alimentam pontuacao, ranking e comentarios da IA.
+6. Admin simula e confirma o resultado oficial.
+7. A transacao finaliza o jogo, avalia palpites e reconstroi ranking e status.
+8. Resultados alimentam os comentarios da IA.

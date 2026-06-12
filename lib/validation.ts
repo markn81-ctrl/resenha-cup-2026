@@ -48,7 +48,7 @@ export const resultSimulationSchema = z.object({
     home: z.number().int().min(0).max(20),
     away: z.number().int().min(0).max(20)
   }),
-  scorers: z.array(z.string().trim().min(1).max(40)).max(8),
+  scorers: z.array(z.string().trim().min(1).max(40)).max(20),
   cardsEdge: z.nativeEnum(CardsEdge),
   cardsRange: z.nativeEnum(CardsRange)
 });
