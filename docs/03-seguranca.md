@@ -9,6 +9,9 @@
 - Controle de acesso por status de aprovacao.
 - Controle de acesso administrativo por `Role.ADMIN`.
 - Rotina cron protegida por `CRON_SECRET` em producao.
+- Consulta de sumula oficial restrita a administradores, sem gravacao automatica de pontos.
+- Resultado externo passa por validacao de competicao, temporada, numero da partida e selecoes.
+- A pontuacao depende de simulacao e aprovacao administrativa explicita.
 - Auditoria de cadastro, aprovacao, alteracao de perfil, palpites, posts, simulacoes, reset e rotinas automaticas.
 - Healthcheck para banco, auth e IA.
 - Preflight de producao para variaveis obrigatorias e alertas operacionais.

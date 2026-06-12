@@ -3,7 +3,7 @@
 import { CardsEdge, CardsRange, LeaderboardScope } from "@prisma/client";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { AdminSimulationView, AdminView } from "@/types/app";
+import type { AdminOfficialResultView, AdminSimulationView, AdminView } from "@/types/app";
 import { Panel } from "@/components/ui/panel";
 import { Flag } from "@/components/ui/flag";
 import { LoadingButton } from "@/components/ui/loading-button";
@@ -52,6 +52,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
   const [simulationScorers, setSimulationScorers] = useState("");
   const [simulationFeedback, setSimulationFeedback] = useState<string | null>(null);
   const [simulationPreview, setSimulationPreview] = useState<AdminSimulationView | null>(null);
+  const [officialResult, setOfficialResult] = useState<AdminOfficialResultView | null>(null);
   const [pending, startTransition] = useTransition();
   const selectedTeam = teamRosters.find((team) => team.teamId === selectedTeamId) ?? teamRosters[0] ?? null;
 
@@ -105,6 +106,11 @@ export function AdminPanel({ data }: { data: AdminView }) {
         setApprovalAction(null);
       }
     });
+  }
+
+  function invalidateSimulation() {
+    setSimulationPreview(null);
+    setSimulationFeedback(null);
   }
 
   return (
@@ -375,7 +381,11 @@ export function AdminPanel({ data }: { data: AdminView }) {
           <div className="mt-4 grid gap-3">
             <select
               value={simulationMatchId}
-              onChange={(event) => setSimulationMatchId(event.target.value)}
+              onChange={(event) => {
+                setSimulationMatchId(event.target.value);
+                setOfficialResult(null);
+                invalidateSimulation();
+              }}
               className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
             >
               {!data.simulationMatches.length ? (
@@ -389,13 +399,156 @@ export function AdminPanel({ data }: { data: AdminView }) {
               ))}
             </select>
 
+            <button
+              type="button"
+              disabled={pending || !simulationMatchId}
+              onClick={() =>
+                startTransition(async () => {
+                  setSimulationFeedback(null);
+                  setSimulationPreview(null);
+                  setOfficialResult(null);
+
+                  try {
+                    const response = await fetch("/api/admin/fetch-official-result", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json"
+                      },
+                      body: JSON.stringify({
+                        matchId: simulationMatchId
+                      })
+                    });
+                    const payload = await response.json().catch(() => null);
+
+                    if (!response.ok) {
+                      setSimulationFeedback(
+                        payload?.error ?? "Nao foi possivel consultar a FIFA."
+                      );
+                      return;
+                    }
+
+                    const result = payload.officialResult as AdminOfficialResultView;
+                    setOfficialResult(result);
+                    setSimulationHomeScore(result.score.home);
+                    setSimulationAwayScore(result.score.away);
+                    setSimulationScorers(result.scorers.join(", "));
+                    setSimulationCardsEdge(result.cards.edge);
+                    setSimulationCardsRange(result.cards.range);
+                    setSimulationFeedback(
+                      "Sumula oficial carregada. Confira os dados e simule a pontuacao antes de aprovar."
+                    );
+                  } catch {
+                    setSimulationFeedback(
+                      "Nao foi possivel falar com a FIFA agora. Tente novamente."
+                    );
+                  }
+                })
+              }
+              className="rounded-2xl border border-sky-300/30 bg-sky-400/10 px-5 py-3 font-semibold text-sky-100 disabled:opacity-40"
+            >
+              {pending ? "Consultando..." : "Buscar resultado na FIFA"}
+            </button>
+
+            {officialResult ? (
+              <div className="rounded-2xl border border-sky-300/25 bg-sky-400/8 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-sky-200">
+                      Sumula oficial para aprovacao
+                    </p>
+                    <p className="mt-2 text-sm text-slate-300">
+                      Fonte: {officialResult.source.name} · partida{" "}
+                      {officialResult.source.matchId} · {officialResult.match.matchTime ?? "tempo final"}
+                    </p>
+                  </div>
+                  <span
+                    className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+                      officialResult.match.finished
+                        ? "bg-emerald-400/15 text-emerald-100"
+                        : "bg-amber-400/15 text-amber-100"
+                    }`}
+                  >
+                    {officialResult.match.finished ? "Encerrada" : "Aguardando encerramento"}
+                  </span>
+                </div>
+
+                <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl bg-slate-950/35 p-4">
+                  <div>
+                    <p className="font-semibold">{officialResult.match.homeTeam}</p>
+                    <p className="text-xs text-slate-400">{officialResult.match.homeCode}</p>
+                  </div>
+                  <p className="text-3xl font-bold">
+                    {officialResult.score.home} x {officialResult.score.away}
+                  </p>
+                  <div className="text-right">
+                    <p className="font-semibold">{officialResult.match.awayTeam}</p>
+                    <p className="text-xs text-slate-400">{officialResult.match.awayCode}</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-2xl bg-slate-950/35 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Gols</p>
+                    <div className="mt-2 space-y-1 text-sm text-slate-200">
+                      {officialResult.goals.map((goal, index) => (
+                        <p key={`${goal.player}-${goal.minute}-${index}`}>
+                          {goal.minute ?? "-"} · {goal.player} ({goal.teamCode})
+                        </p>
+                      ))}
+                      {!officialResult.goals.length ? <p>Sem gols.</p> : null}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl bg-slate-950/35 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                      Cartoes da sumula
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-slate-100">
+                      Amarelos: {officialResult.match.homeCode}{" "}
+                      {officialResult.cards.homeYellow} x {officialResult.cards.awayYellow}{" "}
+                      {officialResult.match.awayCode}
+                    </p>
+                    <div className="mt-2 space-y-1 text-sm text-slate-300">
+                      {officialResult.cards.events.map((card, index) => (
+                        <p key={`${card.player}-${card.minute}-${index}`}>
+                          {card.minute ?? "-"} · {card.player} ({card.teamCode}) ·{" "}
+                          {card.color === "YELLOW"
+                            ? "amarelo"
+                            : card.color === "RED"
+                              ? "vermelho"
+                              : "tipo a conferir"}
+                        </p>
+                      ))}
+                      {!officialResult.cards.events.length ? <p>Sem cartoes registrados.</p> : null}
+                    </div>
+                  </div>
+                </div>
+
+                {officialResult.warnings.length ? (
+                  <div className="mt-3 rounded-2xl border border-amber-300/25 bg-amber-400/10 p-3 text-sm text-amber-100">
+                    {officialResult.warnings.map((warning) => (
+                      <p key={warning}>{warning}</p>
+                    ))}
+                  </div>
+                ) : null}
+
+                <p className="mt-3 text-xs text-slate-400">
+                  Os campos abaixo foram preenchidos com estes dados. Eles podem ser corrigidos
+                  antes da simulacao; nenhuma pontuacao foi aplicada nesta etapa.
+                </p>
+              </div>
+            ) : null}
+
             <div className="grid gap-3 sm:grid-cols-2">
               <input
                 type="number"
                 min={0}
                 max={20}
                 value={simulationHomeScore}
-                onChange={(event) => setSimulationHomeScore(Number(event.target.value))}
+                onChange={(event) => {
+                  setSimulationHomeScore(Number(event.target.value));
+                  invalidateSimulation();
+                }}
                 className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
               />
               <input
@@ -403,14 +556,20 @@ export function AdminPanel({ data }: { data: AdminView }) {
                 min={0}
                 max={20}
                 value={simulationAwayScore}
-                onChange={(event) => setSimulationAwayScore(Number(event.target.value))}
+                onChange={(event) => {
+                  setSimulationAwayScore(Number(event.target.value));
+                  invalidateSimulation();
+                }}
                 className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
               />
             </div>
 
             <input
               value={simulationScorers}
-              onChange={(event) => setSimulationScorers(event.target.value)}
+              onChange={(event) => {
+                setSimulationScorers(event.target.value);
+                invalidateSimulation();
+              }}
               placeholder="Artilheiros do resultado, separados por virgula"
               className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
             />
@@ -418,7 +577,10 @@ export function AdminPanel({ data }: { data: AdminView }) {
             <div className="grid gap-3 sm:grid-cols-2">
               <select
                 value={simulationCardsEdge}
-                onChange={(event) => setSimulationCardsEdge(event.target.value as CardsEdge)}
+                onChange={(event) => {
+                  setSimulationCardsEdge(event.target.value as CardsEdge);
+                  invalidateSimulation();
+                }}
                 className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
               >
                 {cardsEdges.map((item) => (
@@ -430,7 +592,10 @@ export function AdminPanel({ data }: { data: AdminView }) {
 
               <select
                 value={simulationCardsRange}
-                onChange={(event) => setSimulationCardsRange(event.target.value as CardsRange)}
+                onChange={(event) => {
+                  setSimulationCardsRange(event.target.value as CardsRange);
+                  invalidateSimulation();
+                }}
                 className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
               >
                 {cardsRanges.map((item) => (
@@ -481,7 +646,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
               }
               className="rounded-2xl bg-brand-400 px-5 py-3 font-semibold text-slate-950 disabled:opacity-60"
             >
-              {pending ? "Simulando..." : "Simular resultado"}
+              {pending ? "Simulando..." : "Simular pontuacao"}
             </button>
 
             <button
@@ -489,7 +654,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
               disabled={pending || !simulationPreview || simulationPreview.match.id !== simulationMatchId}
               onClick={() => {
                 const confirmed = window.confirm(
-                  "Confirmar este resultado como oficial? O jogo sera finalizado e o ranking sera recalculado."
+                  "Aprovar este resultado como oficial? A partida sera finalizada, os palpites serao pontuados e o ranking sera recalculado."
                 );
 
                 if (!confirmed) {
@@ -527,6 +692,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
                   }
 
                   setSimulationPreview(null);
+                  setOfficialResult(null);
                   setSimulationFeedback(
                     `Jogo ${payload.result.matchNumber} finalizado. ${payload.result.evaluatedPredictions} palpites avaliados e ranking atualizado.`
                   );
@@ -535,7 +701,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
               }}
               className="rounded-2xl border border-emerald-300/30 bg-emerald-400/15 px-5 py-3 font-semibold text-emerald-100 disabled:opacity-40"
             >
-              {pending ? "Processando..." : "Confirmar resultado oficial"}
+              {pending ? "Processando..." : "Aprovar resultado e atualizar ranking"}
             </button>
           </div>
 

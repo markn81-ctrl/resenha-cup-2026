@@ -53,6 +53,10 @@ export const resultSimulationSchema = z.object({
   cardsRange: z.nativeEnum(CardsRange)
 });
 
+export const officialResultFetchSchema = z.object({
+  matchId: z.string().cuid()
+});
+
 export const adminPlayerUpdateSchema = z.object({
   playerId: z.string().cuid(),
   name: z.string().trim().min(2).max(80)

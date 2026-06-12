@@ -45,6 +45,10 @@ O ranking ordena por pontos totais. Em empate, usa placares exatos e vencedores 
 
 ## Resultados oficiais
 
+- O admin pode buscar a sumula estruturada da FIFA para preencher placar, artilheiros e cartoes.
+- A busca apenas monta uma previa e nao grava pontos, resultado ou ranking.
+- A fonte precisa marcar a partida como encerrada antes de liberar a previa oficial.
+- O admin revisa os dados, simula a pontuacao e aprova explicitamente o resultado.
 - O admin simula o resultado antes da confirmacao para revisar a pontuacao projetada.
 - A confirmacao grava placar, artilheiros e cartoes, marca o jogo como finalizado e recalcula todas as sequencias e rankings.
 - Uma segunda confirmacao com os mesmos dados e idempotente.

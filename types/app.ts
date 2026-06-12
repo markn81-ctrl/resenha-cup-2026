@@ -289,3 +289,47 @@ export type AdminSimulationView = {
     streakBonus: number;
   }>;
 };
+
+export type AdminOfficialResultView = {
+  source: {
+    name: string;
+    matchId: string;
+    url: string;
+    fetchedAt: string;
+  };
+  match: {
+    number: number;
+    startsAt: string;
+    finished: boolean;
+    matchTime?: string | null;
+    homeTeam: string;
+    awayTeam: string;
+    homeCode: string;
+    awayCode: string;
+  };
+  score: {
+    home: number;
+    away: number;
+  };
+  scorers: string[];
+  goals: Array<{
+    player: string;
+    teamCode: string;
+    minute?: string | null;
+    typeCode?: number | null;
+  }>;
+  cards: {
+    homeYellow: number;
+    awayYellow: number;
+    totalYellow: number;
+    edge: CardsEdge;
+    range: CardsRange;
+    events: Array<{
+      player: string;
+      teamCode: string;
+      minute?: string | null;
+      color: "YELLOW" | "RED" | "OTHER";
+    }>;
+  };
+  warnings: string[];
+};
