@@ -1,4 +1,5 @@
 import { Phase, PlayerPosition } from "@prisma/client";
+import { getMatchLockDate } from "../lib/locks";
 
 export type GroupTeam = {
   code: string;
@@ -160,10 +161,6 @@ function startsAt(date: string, time: string, utcOffset: number) {
   return new Date(Date.UTC(year, month - 1, day, hour - utcOffset, minute, 0));
 }
 
-function lockAt(matchStartsAt: Date) {
-  return new Date(matchStartsAt.getTime() - 2 * 60 * 60 * 1000);
-}
-
 function groupMatch(args: Omit<OfficialMatchInput, "phase">): OfficialMatchInput {
   return { ...args, phase: Phase.GROUP_STAGE };
 }
@@ -290,7 +287,7 @@ export function buildTournamentMatches(teamIdByCode: Map<string, string>): Tourn
         phase: match.phase,
         groupKey: match.groupKey ?? null,
         startsAt: matchStartsAt,
-        lockAt: lockAt(matchStartsAt),
+        lockAt: getMatchLockDate(matchStartsAt),
         venue: match.venue,
         city: match.city,
         country: match.country,

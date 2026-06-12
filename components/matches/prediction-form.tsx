@@ -2,11 +2,12 @@
 
 import type { FormEvent } from "react";
 import { useState, useTransition } from "react";
-import { CardsEdge, CardsRange, MatchStatus, PredictionOutcome } from "@prisma/client";
+import { CardsEdge, CardsRange, PredictionOutcome } from "@prisma/client";
 import { Flag } from "@/components/ui/flag";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { playerPositionShortLabels } from "@/lib/constants";
 import type { MatchCardData } from "@/types/app";
+import { usePredictionLock } from "@/components/matches/use-prediction-lock";
 
 type PredictionSnapshot = NonNullable<MatchCardData["prediction"]>;
 
@@ -57,7 +58,7 @@ export function PredictionForm({
   const [hasSavedPrediction, setHasSavedPrediction] = useState(Boolean(match.prediction));
   const [pending, startTransition] = useTransition();
   const isEditingPrediction = Boolean(match.prediction) || hasSavedPrediction;
-  const locked = match.status !== MatchStatus.SCHEDULED;
+  const locked = usePredictionLock(match.status, match.lockAt);
   const hasPlayerCatalog = match.homePlayers.length > 0 || match.awayPlayers.length > 0;
 
   const scorerGroups = [
@@ -294,7 +295,7 @@ export function PredictionForm({
           <p className="text-sm text-slate-300">
             {locked
               ? "Palpite travado automaticamente."
-              : "Os palpites fecham 2 horas antes do jogo."}
+              : "Os palpites fecham 10 minutos antes do jogo."}
           </p>
           {!hasPlayerCatalog ? (
             <p className="text-xs text-slate-500">

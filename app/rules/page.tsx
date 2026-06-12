@@ -67,7 +67,7 @@ export default async function RulesPage() {
             <div className="rounded-[26px] border border-brand-300/20 bg-brand-400/10 p-5">
               <p className="text-xs uppercase tracking-[0.22em] text-brand-100">Regra de ouro</p>
               <p className="mt-3 font-[family-name:var(--font-heading)] text-2xl font-bold">
-                Palpites travam 2 horas antes do jogo.
+                Palpites travam 10 minutos antes do jogo.
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-300">
                 Depois do lock, não dá para editar. Nem chorando no grupo, nem pedindo revisão para a IAestagiaria.

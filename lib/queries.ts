@@ -8,6 +8,7 @@ import {
 import { buildPlayerStatus } from "@/lib/player-status";
 import { prisma } from "@/lib/prisma";
 import { getUserRivalry } from "@/lib/rivalries";
+import { getEffectiveMatchStatus } from "@/lib/locks";
 import type {
   AdminTeamRosterView,
   AdminView,
@@ -243,7 +244,7 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
         groupKey: match.groupKey,
         startsAt: match.startsAt,
         lockAt: match.lockAt,
-        status: match.status,
+        status: getEffectiveMatchStatus(match.status, match.lockAt),
         homeTeam: match.homeTeam?.name ?? match.homePlaceholder ?? "Time A",
         awayTeam: match.awayTeam?.name ?? match.awayPlaceholder ?? "Time B",
         homeCode: match.homeTeam?.code,
@@ -338,7 +339,7 @@ export async function getMatchesData(userId?: string | null): Promise<MatchCardD
       groupKey: match.groupKey,
       startsAt: match.startsAt,
       lockAt: match.lockAt,
-      status: match.status,
+      status: getEffectiveMatchStatus(match.status, match.lockAt),
       homeTeam: match.homeTeam?.name ?? match.homePlaceholder ?? "Time A",
       awayTeam: match.awayTeam?.name ?? match.awayPlaceholder ?? "Time B",
       homeCode: match.homeTeam?.code,
@@ -429,7 +430,7 @@ export async function getMatchPredictionData(
       groupKey: match.groupKey,
       startsAt: match.startsAt,
       lockAt: match.lockAt,
-      status: match.status,
+      status: getEffectiveMatchStatus(match.status, match.lockAt),
       homeTeam: match.homeTeam?.name ?? match.homePlaceholder ?? "Time A",
       awayTeam: match.awayTeam?.name ?? match.awayPlaceholder ?? "Time B",
       homeCode: match.homeTeam?.code,

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { MatchStatus } from "@prisma/client";
 import type { MatchCardData } from "@/types/app";
 import { PredictionForm } from "@/components/matches/prediction-form";
+import { usePredictionLock } from "@/components/matches/use-prediction-lock";
 
 type PredictionSnapshot = NonNullable<MatchCardData["prediction"]>;
 
@@ -16,12 +16,16 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const locked = currentMatch.status !== MatchStatus.SCHEDULED;
+  const locked = usePredictionLock(currentMatch.status, currentMatch.lockAt);
   const predictionLabel = currentMatch.prediction
     ? `${currentMatch.prediction.score.home} x ${currentMatch.prediction.score.away}`
     : "Nenhum palpite salvo";
 
   async function openPredictionForm() {
+    if (locked) {
+      return;
+    }
+
     setError(null);
     setSuccessMessage(null);
 
@@ -67,7 +71,7 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
     setCurrentMatch(nextMatch);
     setLoadedMatch(nextMatch);
     setIsOpen(false);
-    setSuccessMessage("Palpite salvo. Voce ainda pode editar ate 2 horas antes do inicio do jogo.");
+    setSuccessMessage("Palpite salvo. Voce ainda pode editar ate 10 minutos antes do inicio do jogo.");
   }
 
   if (isOpen && loadedMatch) {
@@ -91,16 +95,18 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
 
       <button
         type="button"
-        disabled={isLoading}
+        disabled={isLoading || locked}
         onClick={() => {
           void openPredictionForm();
         }}
-        className="rounded-2xl bg-brand-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-brand-300"
+        className="rounded-2xl bg-brand-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-brand-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
       >
         {isLoading
           ? "Carregando..."
           : locked
-            ? "Ver palpite"
+            ? currentMatch.prediction
+              ? "Edicao encerrada"
+              : "Palpite fechado"
             : currentMatch.prediction
               ? "Editar palpite"
               : "Abrir palpite"}

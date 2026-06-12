@@ -23,6 +23,7 @@
     "finalize:result": "tsx scripts/finalize-match-result.ts",
     "verify:ranking": "tsx scripts/verify-ranking-integrity.ts",
     "verify:official-update": "tsx scripts/verify-official-update.ts",
+    "update:prediction-locks": "tsx scripts/update-prediction-locks.ts",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate"

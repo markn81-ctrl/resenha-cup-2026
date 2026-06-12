@@ -36,7 +36,7 @@ export default async function MatchesPage() {
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Regras rapidas</p>
             <h2 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-bold">
-              Palpite trava 2 horas antes do jogo
+              Palpite trava 10 minutos antes do jogo
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-300">
               Vencedor vale +3, placar exato +6, artilheiro +3 cada, cartoes somam bonus e mata-mata aplica multiplicador.

@@ -10,6 +10,7 @@ import {
   PrismaClient,
   Role
 } from "@prisma/client";
+import { getMatchLockDate } from "../lib/locks";
 
 const prisma = new PrismaClient();
 
@@ -111,10 +112,6 @@ function dateAt(dayOffset: number, hourUTC: number) {
   return new Date(Date.UTC(2026, 5, 11 + dayOffset, hourUTC, 0, 0));
 }
 
-function lockAt(startsAt: Date) {
-  return new Date(startsAt.getTime() - 2 * 60 * 60 * 1000);
-}
-
 async function main() {
   await prisma.like.deleteMany();
   await prisma.comment.deleteMany();
@@ -197,7 +194,7 @@ async function main() {
         phase: Phase.GROUP_STAGE,
         groupKey,
         startsAt,
-        lockAt: lockAt(startsAt),
+        lockAt: getMatchLockDate(startsAt),
         venue: `Arena ${groupKey}${pairingIndex + 1}`,
         city: ["Toronto", "Monterrey", "Los Angeles", "Atlanta"][pairingIndex % 4],
         country: ["Canada", "Mexico", "Estados Unidos"][pairingIndex % 3],
@@ -215,7 +212,7 @@ async function main() {
       slug: `match-${String(gameNumber).padStart(3, "0")}-r32`,
       phase: Phase.ROUND_OF_32,
       startsAt,
-      lockAt: lockAt(startsAt),
+      lockAt: getMatchLockDate(startsAt),
       homePlaceholder: home,
       awayPlaceholder: away,
       venue: `Knockout Arena ${index + 1}`,
@@ -232,7 +229,7 @@ async function main() {
       slug: `match-${String(gameNumber).padStart(3, "0")}-r16`,
       phase: Phase.ROUND_OF_16,
       startsAt,
-      lockAt: lockAt(startsAt),
+      lockAt: getMatchLockDate(startsAt),
       homePlaceholder: `Vencedor J${73 + index * 2}`,
       awayPlaceholder: `Vencedor J${74 + index * 2}`,
       venue: `Round 16 Arena ${index + 1}`,
@@ -249,7 +246,7 @@ async function main() {
       slug: `match-${String(gameNumber).padStart(3, "0")}-qf`,
       phase: Phase.QUARTER_FINAL,
       startsAt,
-      lockAt: lockAt(startsAt),
+      lockAt: getMatchLockDate(startsAt),
       homePlaceholder: `Vencedor J${89 + index * 2}`,
       awayPlaceholder: `Vencedor J${90 + index * 2}`,
       venue: `Quarter Arena ${index + 1}`,
@@ -266,7 +263,7 @@ async function main() {
       slug: `match-${String(gameNumber).padStart(3, "0")}-sf`,
       phase: Phase.SEMI_FINAL,
       startsAt,
-      lockAt: lockAt(startsAt),
+      lockAt: getMatchLockDate(startsAt),
       homePlaceholder: `Vencedor J${97 + index * 2}`,
       awayPlaceholder: `Vencedor J${98 + index * 2}`,
       venue: `Semi Arena ${index + 1}`,
@@ -282,7 +279,7 @@ async function main() {
     slug: `match-${String(gameNumber).padStart(3, "0")}-third`,
     phase: Phase.THIRD_PLACE,
     startsAt: thirdPlaceDate,
-    lockAt: lockAt(thirdPlaceDate),
+    lockAt: getMatchLockDate(thirdPlaceDate),
     homePlaceholder: "Perdedor J101",
     awayPlaceholder: "Perdedor J102",
     venue: "Third Place Arena",
@@ -297,7 +294,7 @@ async function main() {
     slug: `match-${String(gameNumber).padStart(3, "0")}-final`,
     phase: Phase.FINAL,
     startsAt: finalDate,
-    lockAt: lockAt(finalDate),
+    lockAt: getMatchLockDate(finalDate),
     homePlaceholder: "Vencedor J101",
     awayPlaceholder: "Vencedor J102",
     venue: "MetLife Stadium",

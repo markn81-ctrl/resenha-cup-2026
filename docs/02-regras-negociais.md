@@ -11,7 +11,7 @@
 
 - Cada usuario pode ter apenas um palpite por jogo.
 - O indice unico `userId + matchId` impede duplicidade.
-- Palpites travam 2 horas antes do inicio da partida.
+- Palpites travam 10 minutos antes do inicio da partida.
 - Depois do lock, a API bloqueia criacao e edicao.
 - O resultado escolhido deve bater com o placar informado.
 - O usuario pode escolher no maximo 2 artilheiros.

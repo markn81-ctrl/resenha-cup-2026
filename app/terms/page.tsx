@@ -4,7 +4,7 @@ import { LEGAL_CONTACT_EMAIL, LEGAL_TERMS_VERSION } from "@/lib/legal";
 const rules = [
   "A Resenha Cup 2026 e uma liga privada de palpites da Copa do Mundo 2026.",
   "Contas novas entram como pendentes e dependem de aprovacao manual do administrador.",
-  "Palpites travam automaticamente 2 horas antes do inicio de cada partida.",
+  "Palpites travam automaticamente 10 minutos antes do inicio de cada partida.",
   "Depois do lock, o palpite nao pode ser criado ou alterado.",
   "Ranking, pontuacao, notificacoes e feed seguem as regras implementadas no sistema.",
   "Publicacoes, comentarios e nomes de perfil devem respeitar os demais participantes."

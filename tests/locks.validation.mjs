@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 
-const twoHoursMs = 2 * 60 * 60 * 1000;
+const lockLeadMs = 10 * 60 * 1000;
 const reminderLeadMs = 15 * 60 * 1000;
 
 function getMatchLockDate(startsAt) {
-  return new Date(new Date(startsAt).getTime() - twoHoursMs);
+  return new Date(new Date(startsAt).getTime() - lockLeadMs);
 }
 
 function isPredictionEditable(lockAt, now) {
@@ -23,10 +23,10 @@ function runLockTests() {
   const startsAt = new Date("2026-06-11T20:00:00.000Z");
   const lockAt = getMatchLockDate(startsAt);
 
-  assert.equal(lockAt.toISOString(), "2026-06-11T18:00:00.000Z");
-  assert.equal(isPredictionEditable(lockAt, new Date("2026-06-11T17:59:59.999Z")), true);
-  assert.equal(isPredictionEditable(lockAt, new Date("2026-06-11T18:00:00.000Z")), false);
-  assert.equal(isPredictionEditable(lockAt, new Date("2026-06-11T18:00:00.001Z")), false);
+  assert.equal(lockAt.toISOString(), "2026-06-11T19:50:00.000Z");
+  assert.equal(isPredictionEditable(lockAt, new Date("2026-06-11T19:49:59.999Z")), true);
+  assert.equal(isPredictionEditable(lockAt, new Date("2026-06-11T19:50:00.000Z")), false);
+  assert.equal(isPredictionEditable(lockAt, new Date("2026-06-11T19:50:00.001Z")), false);
 }
 
 function runReminderWindowTests() {

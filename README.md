@@ -217,7 +217,7 @@ O endpoint retorna:
 
 ## Regras principais
 
-- Palpites travam automaticamente 2 horas antes de cada jogo
+- Palpites travam automaticamente 10 minutos antes de cada jogo
 - Novos usuarios entram como `PENDING`
 - Apenas admin acessa `/admin`
 - Comentarios da IA podem ser publicados via `POST /api/ai/commentary`
