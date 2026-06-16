@@ -28,14 +28,15 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const locked = usePredictionLock(currentMatch.status, currentMatch.lockAt);
+  const lockReached = usePredictionLock(currentMatch.status, currentMatch.lockAt);
+  const closed = lockReached || Boolean(currentMatch.result);
   const predictionLabel = currentMatch.prediction
     ? `${currentMatch.prediction.score.home} x ${currentMatch.prediction.score.away}`
     : "Nenhum palpite salvo";
-  const lockedPrediction = locked ? currentMatch.prediction : null;
+  const lockedPrediction = closed ? currentMatch.prediction : null;
 
   async function openPredictionForm() {
-    if (locked) {
+    if (closed) {
       return;
     }
 
@@ -101,7 +102,7 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
           <p className="mt-1 text-sm font-semibold text-slate-100">{predictionLabel}</p>
           <p className="mt-1 text-xs text-slate-400">
             {successMessage ??
-              (locked
+              (closed
                 ? "Este jogo ja esta travado."
                 : "Abra o formulario apenas quando quiser criar ou editar.")}
           </p>
@@ -109,7 +110,7 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
 
         <button
           type="button"
-          disabled={isLoading || locked}
+          disabled={isLoading || closed}
           onClick={() => {
             void openPredictionForm();
           }}
@@ -117,7 +118,7 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
         >
           {isLoading
             ? "Carregando..."
-            : locked
+            : closed
               ? currentMatch.prediction
                 ? "Edicao encerrada"
                 : "Palpite fechado"
