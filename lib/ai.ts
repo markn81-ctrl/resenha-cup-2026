@@ -208,6 +208,42 @@ export function buildFallbackCommentary(input: CommentaryInput) {
   const battle = input.rankingBattles?.[0] ?? null;
   const bottom = input.bottomWatch?.[0] ?? null;
   const upcoming = input.upcomingMatches?.[0] ?? null;
+  const resultLine = input.matchResults?.length
+    ? `Fechando o dia: ${input.matchResults.slice(0, 2).join(" | ")}.`
+    : null;
+
+  if (input.timeContext?.tournamentStatus === "in_progress") {
+    const inProgressTemplates = [
+      () =>
+        `${resultLine ?? input.matchSummary ?? input.headline} ${battle ?? "A tabela segue em modo aperto, com gente olhando para cima e para baixo ao mesmo tempo."}`,
+      () =>
+        battle
+          ? `${battle}. Esse tipo de distancia curta transforma cada proximo palpite em chance real de ultrapassagem.`
+          : `${input.headline} A briga esta menos sobre liderar bonito e mais sobre nao deixar o pelotao respirar no cangote.`,
+      () =>
+        bottom
+          ? `${bottom}. O fundo da tabela ainda tem saida, mas agora cada pontinho vale aquele drama de fim de rodada.`
+          : `${input.headline} Quem esta atras ainda tem estrada, mas precisa transformar palpite em recuperacao.`,
+      () =>
+        upcoming
+          ? `Proximo alvo da resenha: ${upcoming}. Quem acertar esse pode acordar amanha com a tabela olhando diferente.`
+          : `${input.headline} A rodada nao acabou e o ranking ja esta fazendo conta com cara de quem vai aprontar.`,
+      () =>
+        exact
+          ? `${exact} acertou no detalhe e colocou pressao no resto da mesa. Agora o ranking nao perdoa palpite morno.`
+          : `${resultLine ?? input.headline} Top 3 no radar: ${top3 ?? "ainda sem dono absoluto"}, mas o perigo vem chegando pelo retrovisor.`,
+      () =>
+        streakEntry
+          ? `${streakEntry[0]} emendou ${streakEntry[1]} acertos e ja esta andando com pose de quem estudou a rodada. Vamos ver se sustenta quando a tabela apertar.`
+          : `${input.matchSummary ?? input.headline} A resenha fecha o dia com a certeza de sempre: amanha alguem sobe, alguem sofre e todo mundo finge que tinha conviccao.`,
+      () =>
+        misses
+          ? `${misses} teve uma rodada para esquecer, mas a Copa e longa e a tabela adora uma reviravolta. Dorme hoje, recalcula amanha.`
+          : `${input.headline} O topo chama atencao, mas a melhor fofoca esta nas posicoes coladas.`
+    ];
+
+    return inProgressTemplates[Math.floor(Math.random() * inProgressTemplates.length)]();
+  }
 
   const templates = [
     () =>
