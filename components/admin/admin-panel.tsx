@@ -693,8 +693,13 @@ export function AdminPanel({ data }: { data: AdminView }) {
 
                   setSimulationPreview(null);
                   setOfficialResult(null);
+                  const aiPostMessage = payload.aiPost?.postId
+                    ? " IAestagiaria publicou a resenha do resultado."
+                    : payload.aiPost?.reason === "ai_post_failed"
+                      ? " Resultado ok; IAestagiaria nao conseguiu publicar agora."
+                      : "";
                   setSimulationFeedback(
-                    `Jogo ${payload.result.matchNumber} finalizado. ${payload.result.evaluatedPredictions} palpites avaliados e ranking atualizado.`
+                    `Jogo ${payload.result.matchNumber} finalizado. ${payload.result.evaluatedPredictions} palpites avaliados e ranking atualizado.${aiPostMessage}`
                   );
                   router.refresh();
                 });
