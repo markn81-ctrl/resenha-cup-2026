@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 type NavigationFeedbackContextValue = {
   startNavigation: () => void;
+  finishNavigation: () => void;
 };
 
 const NavigationFeedbackContext = createContext<NavigationFeedbackContextValue | null>(null);
@@ -15,6 +16,9 @@ export function NavigationFeedbackProvider({ children }: { children: React.React
 
   const startNavigation = useCallback(() => {
     setLoading(true);
+  }, []);
+  const finishNavigation = useCallback(() => {
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -30,7 +34,10 @@ export function NavigationFeedbackProvider({ children }: { children: React.React
     return () => window.clearTimeout(fallback);
   }, [loading]);
 
-  const value = useMemo(() => ({ startNavigation }), [startNavigation]);
+  const value = useMemo(
+    () => ({ startNavigation, finishNavigation }),
+    [finishNavigation, startNavigation]
+  );
 
   return (
     <NavigationFeedbackContext.Provider value={value}>

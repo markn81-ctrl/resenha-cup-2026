@@ -9,6 +9,9 @@ import { SmartNavLink } from "@/components/layout/smart-nav-link";
 
 type MatchesTab = "open" | "locked" | "finished";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function MatchesPage({
   searchParams
 }: {
@@ -76,6 +79,7 @@ export default async function MatchesPage({
               <SmartNavLink
                 key={tab.key}
                 href={tab.href}
+                prefetchOnIntent={false}
                 className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
                   isActive
                     ? "bg-brand-400 text-slate-950"

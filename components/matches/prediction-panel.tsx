@@ -34,6 +34,24 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
     ? `${currentMatch.prediction.score.home} x ${currentMatch.prediction.score.away}`
     : "Nenhum palpite salvo";
   const lockedPrediction = closed ? currentMatch.prediction : null;
+  const helperMessage =
+    successMessage ??
+    (closed
+      ? currentMatch.prediction
+        ? "Edicao encerrada. Acompanhe seu palpite abaixo."
+        : "Voce nao registrou palpite para este jogo."
+      : currentMatch.prediction
+        ? "Voce ainda pode editar ate 10 minutos antes do inicio do jogo."
+        : "Crie seu palpite ate 10 minutos antes do inicio do jogo.");
+  const actionLabel = isLoading
+    ? "Carregando..."
+    : closed
+      ? currentMatch.prediction
+        ? "Edicao encerrada"
+        : "Sem palpite"
+      : currentMatch.prediction
+        ? "Editar palpite"
+        : "Criar palpite";
 
   async function openPredictionForm() {
     if (closed) {
@@ -100,12 +118,7 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
             {currentMatch.prediction ? "Seu palpite" : "Palpite"}
           </p>
           <p className="mt-1 text-sm font-semibold text-slate-100">{predictionLabel}</p>
-          <p className="mt-1 text-xs text-slate-400">
-            {successMessage ??
-              (closed
-                ? "Este jogo ja esta travado."
-                : "Abra o formulario apenas quando quiser criar ou editar.")}
-          </p>
+          <p className="mt-1 text-xs text-slate-400">{helperMessage}</p>
         </div>
 
         <button
@@ -116,15 +129,7 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
           }}
           className="rounded-2xl bg-brand-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-brand-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
         >
-          {isLoading
-            ? "Carregando..."
-            : closed
-              ? currentMatch.prediction
-                ? "Edicao encerrada"
-                : "Palpite fechado"
-              : currentMatch.prediction
-                ? "Editar palpite"
-                : "Abrir palpite"}
+          {actionLabel}
         </button>
       </div>
 

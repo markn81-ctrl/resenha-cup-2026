@@ -12,16 +12,27 @@ type SmartNavLinkProps = {
   href: string;
   className?: string;
   ariaLabel?: string;
+  prefetchOnIntent?: boolean;
   children: ReactNode;
 };
 
-export function SmartNavLink({ href, className, ariaLabel, children }: SmartNavLinkProps) {
+export function SmartNavLink({
+  href,
+  className,
+  ariaLabel,
+  prefetchOnIntent = true,
+  children
+}: SmartNavLinkProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { startNavigation } = useNavigationFeedback();
+  const { finishNavigation, startNavigation } = useNavigationFeedback();
   const prefetchTimer = useRef<number | null>(null);
 
   function prefetch() {
+    if (!prefetchOnIntent) {
+      return;
+    }
+
     if (prefetchedHrefs.has(href)) {
       return;
     }
@@ -51,18 +62,31 @@ export function SmartNavLink({ href, className, ariaLabel, children }: SmartNavL
   }
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+    const currentHref =
+      typeof window === "undefined"
+        ? pathname
+        : `${window.location.pathname}${window.location.search}`;
+
     if (
       event.button !== 0 ||
       event.metaKey ||
       event.ctrlKey ||
       event.shiftKey ||
       event.altKey ||
-      pathname === href
+      currentHref === href
     ) {
       return;
     }
 
     startNavigation();
+
+    if (typeof window !== "undefined") {
+      const target = new URL(href, window.location.origin);
+
+      if (target.pathname === window.location.pathname) {
+        window.setTimeout(finishNavigation, 900);
+      }
+    }
   }
 
   return (
