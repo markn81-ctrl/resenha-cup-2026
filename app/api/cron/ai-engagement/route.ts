@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sendPickLockReminders } from "@/lib/pick-lock-reminders";
+import { publishDailyWorldCupEngagementPost } from "@/lib/daily-world-cup-engagement";
 
 export const dynamic = "force-dynamic";
 
@@ -22,12 +22,12 @@ async function handler(request: Request) {
     return NextResponse.json({ error: "Nao autorizado." }, { status: 401 });
   }
 
-  const pickLockSummary = await sendPickLockReminders();
+  const dailyEngagement = await publishDailyWorldCupEngagementPost();
 
   return NextResponse.json({
     ok: true,
     summary: {
-      pickLock: pickLockSummary
+      dailyEngagement
     }
   });
 }

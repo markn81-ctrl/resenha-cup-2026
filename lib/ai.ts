@@ -33,8 +33,14 @@ export type CommentaryInput = {
     position: number;
     points: number;
   }>;
+  rankingBattles?: string[];
+  bottomWatch?: string[];
+  upcomingMatches?: string[];
   matchResults?: string[];
   matchSummary?: string;
+  recentPosts?: string[];
+  avoidTerms?: string[];
+  focus?: string;
   timeContext?: {
     localDate: string;
     daysUntilWorldCup: number;
@@ -62,7 +68,7 @@ TOM DE VOZ
 - Humor leve, ironico, inteligente e com cara de resenha de grupo
 - Pode provocar e brincar, mas sem ofender
 - Estilo resenha entre amigos
-- Use expressoes comuns do Brasil como: ta voando, sumiu, apagado, cravou bonito, pipocou, ta complicado, isso ai virou novela, olha o crime, hoje tem auditoria
+- Use expressoes comuns do Brasil, mas varie bastante: ta voando, sumiu, apagado, cravou bonito, pipocou, ta complicado, isso ai virou novela, olha o crime, acordou para o jogo, encostou no pelotao
 - Pode usar emojis com moderacao
 
 REGRAS IMPORTANTES
@@ -79,6 +85,10 @@ REGRAS IMPORTANTES
 - Nao use sempre a mesma estrutura de frase
 - Nao comece sempre com "Rapaz", "Joao ta" ou "Essa rodada"
 - Nao repita bordoes usados nos exemplos se houver outra forma natural
+- Evite repetir assunto, nomes e bordoes dos posts recentes enviados no contexto
+- Se houver termos_para_evitar, nao use esses termos
+- Durante a Copa, varie o foco entre topo, perseguidores, meio da tabela, fundo da tabela, proximos jogos e ultimos resultados
+- Nao fale sempre do lider; quando possivel, traga disputa de posicoes, aproximacao, ultrapassagem ameacada ou tentativa de recuperacao
 - Evite parecer comunicado oficial
 
 TAREFA
@@ -98,11 +108,17 @@ function buildPromptPayload(input: CommentaryInput) {
     errou_tudo: input.totalMisses ?? [],
     streak: input.streak ?? {},
     ranking_atual: input.currentRanking ?? [],
+    disputas_ranking: input.rankingBattles ?? [],
+    zona_de_recuperacao: input.bottomWatch ?? [],
+    proximos_jogos: input.upcomingMatches ?? [],
     mudancas_ranking: input.rankingChanges,
     destaques_quentes: input.hotStreaks,
     destaques_frios: input.coldStreaks,
     resultados_jogos: input.matchResults ?? [],
     resumo_rodada: input.matchSummary ?? null,
+    posts_recentes_da_ia: input.recentPosts ?? [],
+    termos_para_evitar: input.avoidTerms ?? [],
+    foco_do_post: input.focus ?? null,
     manchete: input.headline,
     escopo: input.scope,
     contexto_tempo: input.timeContext ?? null,
@@ -189,6 +205,9 @@ export function buildFallbackCommentary(input: CommentaryInput) {
   const streakEntry = Object.entries(input.streak ?? {}).sort((a, b) => b[1] - a[1])[0];
   const daysUntil = input.timeContext?.daysUntilWorldCup;
   const newMembers = input.newMembers?.length ? input.newMembers.join(", ") : null;
+  const battle = input.rankingBattles?.[0] ?? null;
+  const bottom = input.bottomWatch?.[0] ?? null;
+  const upcoming = input.upcomingMatches?.[0] ?? null;
 
   const templates = [
     () =>
@@ -201,6 +220,18 @@ export function buildFallbackCommentary(input: CommentaryInput) {
         : `A IAestagiaria passou para lembrar: Copa do Mundo nao espera ninguem. Perfil arrumado, palpite afiado e provocacao em dia, por favor.`,
     () =>
       `${input.headline} ${input.matchSummary ?? "A mesa ja comecou a fazer conta de guardanapo."} Quem bobear agora vai virar pauta da resenha.`,
+    () =>
+      battle
+        ? `${battle}. Esse tipo de distancia pequena e o combustivel oficial de quem abre o app so para secar o vizinho de tabela.`
+        : `${input.headline} A briga esta menos sobre liderar bonito e mais sobre nao deixar o pelotao respirar no cangote.`,
+    () =>
+      bottom
+        ? `${bottom}. O fundo da tabela ainda tem saida, mas agora cada pontinho vale aquele drama de final de campeonato.`
+        : `${input.headline} Quem esta la embaixo ainda tem estrada, mas precisa parar de tratar palpite como chute no escuro.`,
+    () =>
+      upcoming
+        ? `Proximo alvo da resenha: ${upcoming}. Quem cravar aqui pode mudar a conversa antes que o ranking esfrie.`
+        : `${input.headline} A rodada nao acabou e a tabela ja esta fazendo conta com cara de quem vai aprontar.`,
     () =>
       input.biggestRise
         ? `${input.biggestRise} deu aquela arrancada que faz o ranking pedir VAR. Se mantiver esse ritmo, vai ter gente fingindo que nem viu.`

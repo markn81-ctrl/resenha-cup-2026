@@ -1,4 +1,4 @@
-import { LeaderboardScope, MatchStatus, type CardsEdge, type CardsRange, type MatchResult, type Phase, type Prediction, type PredictionOutcome, type Score } from "@prisma/client";
+import { FeedPostType, LeaderboardScope, MatchStatus, type CardsEdge, type CardsRange, type MatchResult, type Phase, type Prediction, type PredictionOutcome, type Score } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { calculatePredictionScore } from "@/lib/scoring";
 import type { CommentaryInput } from "@/lib/ai";
@@ -13,6 +13,95 @@ type ResultWithScore = Pick<MatchResult, "outcome" | "cardsEdge" | "cardsRange" 
 
 function uniqueNames(values: string[]) {
   return [...new Set(values)].slice(0, 5);
+}
+
+function displayName(row: { user: { name?: string | null; username?: string | null } }) {
+  return row.user.name ?? row.user.username ?? "Participante";
+}
+
+function buildRankingBattles(
+  rows: Array<{
+    rankPosition: number;
+    totalPoints: number;
+    user: { name?: string | null; username?: string | null };
+  }>
+) {
+  return rows
+    .slice(1)
+    .map((row, index) => {
+      const previous = rows[index];
+      const gap = previous.totalPoints - row.totalPoints;
+
+      return {
+        gap,
+        label:
+          gap === 0
+            ? `${displayName(row)} tem os mesmos pontos de ${displayName(previous)} na briga #${previous.rankPosition} x #${row.rankPosition}`
+            : `${displayName(row)} esta a ${gap} ponto(s) de ${displayName(previous)} na briga #${previous.rankPosition} x #${row.rankPosition}`
+      };
+    })
+    .filter((item) => item.gap >= 0 && item.gap <= 12)
+    .sort((a, b) => a.gap - b.gap)
+    .slice(0, 5)
+    .map((item) => item.label);
+}
+
+function buildBottomWatch(
+  rows: Array<{
+    rankPosition: number;
+    totalPoints: number;
+    user: { name?: string | null; username?: string | null };
+  }>
+) {
+  const bottomRows = rows.slice(Math.max(0, rows.length - 5));
+
+  return bottomRows.map((row, index) => {
+    const previous = bottomRows[index - 1] ?? rows[row.rankPosition - 2];
+    const gap = previous ? previous.totalPoints - row.totalPoints : 0;
+    return gap > 0
+      ? `${displayName(row)} esta em #${row.rankPosition}, a ${gap} ponto(s) de encostar em ${displayName(previous)}`
+      : `${displayName(row)} esta em #${row.rankPosition} com ${row.totalPoints} ponto(s) e precisa de uma rodada de reacao`;
+  });
+}
+
+function pickFocus(dateKey: string, recentPosts: string[]) {
+  const focusOptions = [
+    "briga pela lideranca",
+    "perseguidores do top 3",
+    "duelos do meio da tabela",
+    "recuperacao do fundo da tabela",
+    "ultimos resultados",
+    "proximos palpites decisivos"
+  ];
+  const seed =
+    [...dateKey].reduce((sum, char) => sum + char.charCodeAt(0), 0) + recentPosts.length;
+
+  return focusOptions[seed % focusOptions.length];
+}
+
+function buildAvoidTerms(recentPosts: string[]) {
+  const watchedTerms = [
+    "auditoria",
+    "cravou bonito",
+    "ta voando",
+    "voando baixo",
+    "sumiu",
+    "virou novela"
+  ];
+  const normalizedPosts = recentPosts.map((post) =>
+    post
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+  );
+
+  return watchedTerms.filter((term) => {
+    const normalizedTerm = term
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    return normalizedPosts.filter((post) => post.includes(normalizedTerm)).length >= 2;
+  });
 }
 
 function buildHeadline(args: {
@@ -41,12 +130,18 @@ function buildHeadline(args: {
 }
 
 export async function buildAutomaticCommentary(scope: LeaderboardScope = LeaderboardScope.OVERALL): Promise<CommentaryInput> {
-  const [leaderboardRows, recentMatches] = await Promise.all([
+  const dateKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
+  const [leaderboardRows, recentMatches, upcomingMatches, recentAiPosts] = await Promise.all([
     prisma.leaderboard.findMany({
       where: { scope },
       include: { user: true },
       orderBy: [{ rankPosition: "asc" }],
-      take: 5
+      take: 30
     }),
     prisma.match.findMany({
       where: {
@@ -70,10 +165,30 @@ export async function buildAutomaticCommentary(scope: LeaderboardScope = Leaderb
       },
       orderBy: { startsAt: "desc" },
       take: 6
+    }),
+    prisma.match.findMany({
+      where: {
+        status: { not: MatchStatus.FINISHED },
+        lockAt: {
+          gt: new Date()
+        }
+      },
+      include: {
+        homeTeam: true,
+        awayTeam: true
+      },
+      orderBy: { startsAt: "asc" },
+      take: 4
+    }),
+    prisma.feedPost.findMany({
+      where: { type: FeedPostType.AI_COMMENTARY },
+      orderBy: { createdAt: "desc" },
+      select: { content: true },
+      take: 8
     })
   ]);
 
-  const top3 = leaderboardRows.slice(0, 3).map((row) => row.user.name ?? row.user.username ?? "Participante");
+  const top3 = leaderboardRows.slice(0, 3).map((row) => displayName(row));
   const biggestRiseRow = [...leaderboardRows]
     .filter((row) => row.movement > 0)
     .sort((a, b) => b.movement - a.movement)[0];
@@ -115,16 +230,16 @@ export async function buildAutomaticCommentary(scope: LeaderboardScope = Leaderb
         phase: match.phase as Phase
       });
 
-      const displayName = prediction.user.name ?? prediction.user.username ?? "Participante";
-      recentPoints.set(displayName, (recentPoints.get(displayName) ?? 0) + breakdown.total);
-      recentWinnerMatrix.set(displayName, [...(recentWinnerMatrix.get(displayName) ?? []), breakdown.winnerHit]);
+      const predictionUserName = prediction.user.name ?? prediction.user.username ?? "Participante";
+      recentPoints.set(predictionUserName, (recentPoints.get(predictionUserName) ?? 0) + breakdown.total);
+      recentWinnerMatrix.set(predictionUserName, [...(recentWinnerMatrix.get(predictionUserName) ?? []), breakdown.winnerHit]);
 
       if (breakdown.exactHit) {
-        exactScoreHits.push(displayName);
+        exactScoreHits.push(predictionUserName);
       }
 
       if (breakdown.total === 0) {
-        totalMisses.push(displayName);
+        totalMisses.push(predictionUserName);
       }
     }
   }
@@ -161,39 +276,54 @@ export async function buildAutomaticCommentary(scope: LeaderboardScope = Leaderb
 
   const rankingChanges = [
     biggestRiseRow
-      ? `${biggestRiseRow.user.name ?? biggestRiseRow.user.username} subiu ${biggestRiseRow.movement} posicoes`
+      ? `${displayName(biggestRiseRow)} subiu ${biggestRiseRow.movement} posicoes`
       : null,
     biggestFallRow
-      ? `${biggestFallRow.user.name ?? biggestFallRow.user.username} caiu ${Math.abs(biggestFallRow.movement)} posicoes`
+      ? `${displayName(biggestFallRow)} caiu ${Math.abs(biggestFallRow.movement)} posicoes`
       : null,
     pointsGap !== null ? `A diferenca no topo esta em ${pointsGap} ponto(s)` : null
   ].filter(Boolean) as string[];
+  const recentPosts = recentAiPosts.map((post) => post.content);
+  const rankingBattles = buildRankingBattles(leaderboardRows);
+  const bottomWatch = buildBottomWatch(leaderboardRows);
+  const upcomingMatchLabels = upcomingMatches.map((match) => {
+    const homeName = match.homeTeam?.name ?? match.homePlaceholder ?? "Time A";
+    const awayName = match.awayTeam?.name ?? match.awayPlaceholder ?? "Time B";
+
+    return `Jogo ${match.number}: ${homeName} x ${awayName}`;
+  });
 
   return {
     scope,
     headline: buildHeadline({
-      biggestRise: biggestRiseRow?.user.name ?? biggestRiseRow?.user.username ?? null,
-      biggestFall: biggestFallRow?.user.name ?? biggestFallRow?.user.username ?? null,
+      biggestRise: biggestRiseRow ? displayName(biggestRiseRow) : null,
+      biggestFall: biggestFallRow ? displayName(biggestFallRow) : null,
       exactScoreHits: uniqueNames(exactScoreHits),
       pointsGap
     }),
     top3,
-    biggestRise: biggestRiseRow?.user.name ?? biggestRiseRow?.user.username ?? null,
-    biggestFall: biggestFallRow?.user.name ?? biggestFallRow?.user.username ?? null,
+    biggestRise: biggestRiseRow ? displayName(biggestRiseRow) : null,
+    biggestFall: biggestFallRow ? displayName(biggestFallRow) : null,
     exactScoreHits: uniqueNames(exactScoreHits),
     totalMisses: uniqueNames(totalMisses),
     streak,
     rankingChanges,
+    rankingBattles,
+    bottomWatch,
+    upcomingMatches: upcomingMatchLabels,
     hotStreaks,
     coldStreaks,
     currentRanking: leaderboardRows.map((row) => ({
-      name: row.user.name ?? row.user.username ?? "Participante",
+      name: displayName(row),
       position: row.rankPosition,
       points: row.totalPoints
     })),
     matchResults,
     matchSummary: matchResults.length
       ? `Ultimos resultados: ${matchResults.slice(0, 3).join(" | ")}`
-      : "Ainda sem jogos finalizados para comentar."
+      : "Ainda sem jogos finalizados para comentar.",
+    recentPosts,
+    avoidTerms: buildAvoidTerms(recentPosts),
+    focus: pickFocus(dateKey, recentPosts)
   };
 }
