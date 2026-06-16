@@ -314,13 +314,24 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
   }
 }
 
-export async function getMatchesData(userId?: string | null): Promise<MatchCardData[]> {
+export async function getMatchesData(
+  userId?: string | null,
+  tab: "active" | "finished" = "active"
+): Promise<MatchCardData[]> {
   if (!databaseEnabled() || !userId) {
     return [];
   }
 
   try {
     const matches = await prisma.match.findMany({
+      where:
+        tab === "finished"
+          ? { status: MatchStatus.FINISHED }
+          : {
+              status: {
+                not: MatchStatus.FINISHED
+              }
+            },
       include: {
         homeTeam: true,
         awayTeam: true,
@@ -332,7 +343,7 @@ export async function getMatchesData(userId?: string | null): Promise<MatchCardD
           include: { score: true }
         }
       },
-      orderBy: [{ startsAt: "asc" }]
+      orderBy: tab === "finished" ? [{ startsAt: "desc" }] : [{ startsAt: "asc" }]
     });
 
     return matches.map((match) => ({

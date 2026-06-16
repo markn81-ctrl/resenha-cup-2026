@@ -7,7 +7,13 @@ import { MatchCard } from "@/components/matches/match-card";
 import { Panel } from "@/components/ui/panel";
 import { SmartNavLink } from "@/components/layout/smart-nav-link";
 
-export default async function MatchesPage() {
+type MatchesTab = "active" | "finished";
+
+export default async function MatchesPage({
+  searchParams
+}: {
+  searchParams?: { tab?: string };
+}) {
   const session = await auth();
 
   if (!session?.user) {
@@ -18,10 +24,16 @@ export default async function MatchesPage() {
     redirect("/pending");
   }
 
+  const selectedTab: MatchesTab = searchParams?.tab === "finished" ? "finished" : "active";
+
   const [matches, unreadNotifications] = await Promise.all([
-    getMatchesData(session?.user?.id),
+    getMatchesData(session?.user?.id, selectedTab),
     getUnreadNotificationsCount(session?.user?.id)
   ]);
+  const tabs: Array<{ key: MatchesTab; label: string; href: string }> = [
+    { key: "active", label: "Ativos", href: "/matches" },
+    { key: "finished", label: "Finalizados", href: "/matches?tab=finished" }
+  ];
 
   return (
     <AppShell
@@ -49,9 +61,39 @@ export default async function MatchesPage() {
             Ver regra completa
           </SmartNavLink>
         </Panel>
+
+        <div className="flex flex-wrap gap-2 rounded-3xl border border-white/8 bg-white/5 p-2">
+          {tabs.map((tab) => {
+            const isActive = selectedTab === tab.key;
+
+            return (
+              <SmartNavLink
+                key={tab.key}
+                href={tab.href}
+                className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
+                  isActive
+                    ? "bg-brand-400 text-slate-950"
+                    : "text-slate-300 hover:bg-white/8 hover:text-slate-100"
+                }`}
+              >
+                {tab.label}
+              </SmartNavLink>
+            );
+          })}
+        </div>
+
         {matches.map((match) => (
           <MatchCard key={match.id} match={match} />
         ))}
+        {!matches.length ? (
+          <Panel>
+            <p className="text-sm text-slate-300">
+              {selectedTab === "finished"
+                ? "Ainda nao ha jogos finalizados para consultar."
+                : "Nenhum jogo ativo carregado agora."}
+            </p>
+          </Panel>
+        ) : null}
       </div>
     </AppShell>
   );
