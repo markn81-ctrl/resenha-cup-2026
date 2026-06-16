@@ -64,6 +64,27 @@ function buildBottomWatch(
   });
 }
 
+function matchTitle(match: {
+  number: number;
+  homeTeam?: { name: string } | null;
+  awayTeam?: { name: string } | null;
+  homePlaceholder?: string | null;
+  awayPlaceholder?: string | null;
+}) {
+  const homeName = match.homeTeam?.name ?? match.homePlaceholder ?? "Time A";
+  const awayName = match.awayTeam?.name ?? match.awayPlaceholder ?? "Time B";
+
+  return `Jogo ${match.number}: ${homeName} x ${awayName}`;
+}
+
+function buildMatchStatusLabel(status: MatchStatus, lockAt: Date, now: Date) {
+  if (status === MatchStatus.FINISHED) {
+    return "finalizado";
+  }
+
+  return lockAt <= now ? "travado aguardando resultado" : "aberto para palpites";
+}
+
 function pickFocus(dateKey: string, recentPosts: string[]) {
   const focusOptions = [
     "briga pela lideranca",
@@ -136,7 +157,8 @@ export async function buildAutomaticCommentary(scope: LeaderboardScope = Leaderb
     month: "2-digit",
     day: "2-digit"
   }).format(new Date());
-  const [leaderboardRows, recentMatches, upcomingMatches, recentAiPosts] = await Promise.all([
+  const now = new Date();
+  const [leaderboardRows, recentMatches, currentMatches, upcomingMatches, recentPredictions, recentAiPosts] = await Promise.all([
     prisma.leaderboard.findMany({
       where: { scope },
       include: { user: true },
@@ -168,9 +190,39 @@ export async function buildAutomaticCommentary(scope: LeaderboardScope = Leaderb
     }),
     prisma.match.findMany({
       where: {
+        OR: [
+          {
+            startsAt: {
+              gte: new Date(now.getTime() - 12 * 60 * 60 * 1000),
+              lte: new Date(now.getTime() + 12 * 60 * 60 * 1000)
+            }
+          },
+          {
+            status: MatchStatus.FINISHED,
+            result: {
+              isNot: null
+            }
+          }
+        ]
+      },
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+        result: {
+          include: { score: true }
+        },
+        _count: {
+          select: { predictions: true }
+        }
+      },
+      orderBy: { startsAt: "desc" },
+      take: 6
+    }),
+    prisma.match.findMany({
+      where: {
         status: { not: MatchStatus.FINISHED },
         lockAt: {
-          gt: new Date()
+          gt: now
         }
       },
       include: {
@@ -179,6 +231,25 @@ export async function buildAutomaticCommentary(scope: LeaderboardScope = Leaderb
       },
       orderBy: { startsAt: "asc" },
       take: 4
+    }),
+    prisma.prediction.findMany({
+      where: {
+        updatedAt: {
+          gte: new Date(now.getTime() - 24 * 60 * 60 * 1000)
+        }
+      },
+      include: {
+        user: true,
+        match: {
+          include: {
+            homeTeam: true,
+            awayTeam: true,
+            result: true
+          }
+        }
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 8
     }),
     prisma.feedPost.findMany({
       where: { type: FeedPostType.AI_COMMENTARY },
@@ -286,11 +357,22 @@ export async function buildAutomaticCommentary(scope: LeaderboardScope = Leaderb
   const recentPosts = recentAiPosts.map((post) => post.content);
   const rankingBattles = buildRankingBattles(leaderboardRows);
   const bottomWatch = buildBottomWatch(leaderboardRows);
-  const upcomingMatchLabels = upcomingMatches.map((match) => {
-    const homeName = match.homeTeam?.name ?? match.homePlaceholder ?? "Time A";
-    const awayName = match.awayTeam?.name ?? match.awayPlaceholder ?? "Time B";
+  const currentMatchLabels = currentMatches.map((match) => {
+    const statusLabel = buildMatchStatusLabel(match.status, match.lockAt, now);
+    const resultLabel = match.result
+      ? `resultado ${match.result.score.home} x ${match.result.score.away}`
+      : `${match._count.predictions} palpite(s) registrado(s)`;
 
-    return `Jogo ${match.number}: ${homeName} x ${awayName}`;
+    return `${matchTitle(match)} esta ${statusLabel}, ${resultLabel}`;
+  });
+  const upcomingMatchLabels = upcomingMatches.map((match) => matchTitle(match));
+  const latestPredictionHighlights = recentPredictions.map((prediction) => {
+    const playerName = prediction.user.name ?? prediction.user.username ?? "Participante";
+    const hiddenPickLabel = prediction.match.result
+      ? "ja virou historico de pontuacao"
+      : "entrou na fila sem abrir o placar para a concorrencia";
+
+    return `${playerName} mexeu em palpite do ${matchTitle(prediction.match)}; ${hiddenPickLabel}`;
   });
 
   return {
@@ -310,7 +392,9 @@ export async function buildAutomaticCommentary(scope: LeaderboardScope = Leaderb
     rankingChanges,
     rankingBattles,
     bottomWatch,
+    currentMatches: currentMatchLabels,
     upcomingMatches: upcomingMatchLabels,
+    latestPredictionHighlights,
     hotStreaks,
     coldStreaks,
     currentRanking: leaderboardRows.map((row) => ({

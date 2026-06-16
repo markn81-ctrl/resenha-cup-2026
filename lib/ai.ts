@@ -35,7 +35,9 @@ export type CommentaryInput = {
   }>;
   rankingBattles?: string[];
   bottomWatch?: string[];
+  currentMatches?: string[];
   upcomingMatches?: string[];
+  latestPredictionHighlights?: string[];
   matchResults?: string[];
   matchSummary?: string;
   recentPosts?: string[];
@@ -88,6 +90,8 @@ REGRAS IMPORTANTES
 - Evite repetir assunto, nomes e bordoes dos posts recentes enviados no contexto
 - Se houver termos_para_evitar, nao use esses termos
 - Durante a Copa, varie o foco entre topo, perseguidores, meio da tabela, fundo da tabela, proximos jogos e ultimos resultados
+- Quando houver jogos_atuais ou ultimos_palpites, priorize esse contexto para parecer conectado ao dia real do bolao
+- Pode comentar volume, atraso, pressao e clima dos palpites recentes, mas nao revele placares exatos de palpites de jogos ainda abertos/travados
 - Nao fale sempre do lider; quando possivel, traga disputa de posicoes, aproximacao, ultrapassagem ameacada ou tentativa de recuperacao
 - Evite parecer comunicado oficial
 
@@ -110,7 +114,9 @@ function buildPromptPayload(input: CommentaryInput) {
     ranking_atual: input.currentRanking ?? [],
     disputas_ranking: input.rankingBattles ?? [],
     zona_de_recuperacao: input.bottomWatch ?? [],
+    jogos_atuais: input.currentMatches ?? [],
     proximos_jogos: input.upcomingMatches ?? [],
+    ultimos_palpites: input.latestPredictionHighlights ?? [],
     mudancas_ranking: input.rankingChanges,
     destaques_quentes: input.hotStreaks,
     destaques_frios: input.coldStreaks,
@@ -207,13 +213,23 @@ export function buildFallbackCommentary(input: CommentaryInput) {
   const newMembers = input.newMembers?.length ? input.newMembers.join(", ") : null;
   const battle = input.rankingBattles?.[0] ?? null;
   const bottom = input.bottomWatch?.[0] ?? null;
+  const currentMatch = input.currentMatches?.[0] ?? null;
   const upcoming = input.upcomingMatches?.[0] ?? null;
+  const latestPick = input.latestPredictionHighlights?.[0] ?? null;
   const resultLine = input.matchResults?.length
     ? `Fechando o dia: ${input.matchResults.slice(0, 2).join(" | ")}.`
     : null;
 
   if (input.timeContext?.tournamentStatus === "in_progress") {
     const inProgressTemplates = [
+      () =>
+        currentMatch
+          ? `${currentMatch}. A IAestagiaria ta de olho porque jogo atual mexe no humor da mesa antes mesmo do ranking respirar.`
+          : `${resultLine ?? input.matchSummary ?? input.headline} ${battle ?? "A tabela segue em modo aperto, com gente olhando para cima e para baixo ao mesmo tempo."}`,
+      () =>
+        latestPick
+          ? `${latestPick}. O bom do bolao e isso: quando a rodada esquenta, ate palpite recem-salvo ja vira assunto no grupo.`
+          : `${resultLine ?? input.matchSummary ?? input.headline} ${battle ?? "A tabela segue em modo aperto, com gente olhando para cima e para baixo ao mesmo tempo."}`,
       () =>
         `${resultLine ?? input.matchSummary ?? input.headline} ${battle ?? "A tabela segue em modo aperto, com gente olhando para cima e para baixo ao mesmo tempo."}`,
       () =>
