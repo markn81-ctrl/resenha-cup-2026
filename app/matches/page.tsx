@@ -7,7 +7,7 @@ import { MatchCard } from "@/components/matches/match-card";
 import { Panel } from "@/components/ui/panel";
 import { SmartNavLink } from "@/components/layout/smart-nav-link";
 
-type MatchesTab = "active" | "finished";
+type MatchesTab = "open" | "locked" | "finished";
 
 export default async function MatchesPage({
   searchParams
@@ -24,21 +24,27 @@ export default async function MatchesPage({
     redirect("/pending");
   }
 
-  const selectedTab: MatchesTab = searchParams?.tab === "finished" ? "finished" : "active";
+  const selectedTab: MatchesTab =
+    searchParams?.tab === "finished"
+      ? "finished"
+      : searchParams?.tab === "locked"
+        ? "locked"
+        : "open";
 
   const [matches, unreadNotifications] = await Promise.all([
     getMatchesData(session?.user?.id, selectedTab),
     getUnreadNotificationsCount(session?.user?.id)
   ]);
   const tabs: Array<{ key: MatchesTab; label: string; href: string }> = [
-    { key: "active", label: "Ativos", href: "/matches" },
+    { key: "open", label: "Abertos", href: "/matches" },
+    { key: "locked", label: "Travados", href: "/matches?tab=locked" },
     { key: "finished", label: "Finalizados", href: "/matches?tab=finished" }
   ];
 
   return (
     <AppShell
       title="Jogos e Palpites"
-      subtitle="104 partidas, lock automatico e um formulario pensado pra resposta rapida."
+      subtitle="104 partidas, palpites abertos ate 10 minutos antes da bola rolar."
       currentPath="/matches"
       user={session?.user}
       unreadNotifications={unreadNotifications}
@@ -90,7 +96,9 @@ export default async function MatchesPage({
             <p className="text-sm text-slate-300">
               {selectedTab === "finished"
                 ? "Ainda nao ha jogos finalizados para consultar."
-                : "Nenhum jogo ativo carregado agora."}
+                : selectedTab === "locked"
+                  ? "Nenhum jogo travado aguardando resultado agora."
+                  : "Nenhum jogo aberto para palpite agora."}
             </p>
           </Panel>
         ) : null}

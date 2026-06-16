@@ -316,22 +316,37 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
 
 export async function getMatchesData(
   userId?: string | null,
-  tab: "active" | "finished" = "active"
+  tab: "open" | "locked" | "finished" = "open"
 ): Promise<MatchCardData[]> {
   if (!databaseEnabled() || !userId) {
     return [];
   }
 
   try {
-    const matches = await prisma.match.findMany({
-      where:
-        tab === "finished"
-          ? { status: MatchStatus.FINISHED }
+    const now = new Date();
+    const where =
+      tab === "finished"
+        ? { status: MatchStatus.FINISHED }
+        : tab === "locked"
+          ? {
+              status: {
+                not: MatchStatus.FINISHED
+              },
+              lockAt: {
+                lte: now
+              }
+            }
           : {
               status: {
                 not: MatchStatus.FINISHED
+              },
+              lockAt: {
+                gt: now
               }
-            },
+            };
+
+    const matches = await prisma.match.findMany({
+      where,
       include: {
         homeTeam: true,
         awayTeam: true,
@@ -343,7 +358,7 @@ export async function getMatchesData(
           include: { score: true }
         }
       },
-      orderBy: tab === "finished" ? [{ startsAt: "desc" }] : [{ startsAt: "asc" }]
+      orderBy: tab === "open" ? [{ startsAt: "asc" }] : [{ startsAt: "desc" }]
     });
 
     return matches.map((match) => ({
