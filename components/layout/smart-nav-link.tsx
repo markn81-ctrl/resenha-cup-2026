@@ -12,6 +12,7 @@ type SmartNavLinkProps = {
   href: string;
   className?: string;
   ariaLabel?: string;
+  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
   prefetchOnIntent?: boolean;
   children: ReactNode;
 };
@@ -20,6 +21,7 @@ export function SmartNavLink({
   href,
   className,
   ariaLabel,
+  onClick,
   prefetchOnIntent = true,
   children
 }: SmartNavLinkProps) {
@@ -62,6 +64,8 @@ export function SmartNavLink({
   }
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+    onClick?.(event);
+
     const currentHref =
       typeof window === "undefined"
         ? pathname

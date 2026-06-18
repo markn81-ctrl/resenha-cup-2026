@@ -3,8 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import {
   getFeedData,
-  getNotificationsData,
-  getUnreadNotificationsCount
+  getNotificationsData
 } from "@/lib/queries";
 import { AppShell } from "@/components/layout/app-shell";
 import { FeedComposer } from "@/components/feed/feed-composer";
@@ -23,11 +22,14 @@ export default async function ResenhaPage() {
     redirect("/pending");
   }
 
-  const [posts, notifications, unreadNotifications] = await Promise.all([
+  const [posts, notifications] = await Promise.all([
     getFeedData(session.user.id),
-    getNotificationsData(session.user.id),
-    getUnreadNotificationsCount(session.user.id)
+    getNotificationsData(session.user.id)
   ]);
+  const viewedNotifications = notifications.map((item) => ({
+    ...item,
+    isRead: true
+  }));
 
   return (
     <AppShell
@@ -35,7 +37,7 @@ export default async function ResenhaPage() {
       subtitle="Feed, IAestagiaria, comentarios e alertas em um unico fluxo."
       currentPath="/resenha"
       user={session.user}
-      unreadNotifications={unreadNotifications}
+      unreadNotifications={0}
     >
       <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
         <section className="space-y-4">
@@ -66,7 +68,7 @@ export default async function ResenhaPage() {
               Notificacoes importantes ficam ao lado da conversa para voce nao precisar trocar de pagina.
             </p>
           </Panel>
-          <NotificationList items={notifications} />
+          <NotificationList items={viewedNotifications} />
         </aside>
       </div>
     </AppShell>

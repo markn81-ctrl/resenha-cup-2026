@@ -1,8 +1,9 @@
 import Image from "next/image";
-import { Bell, Minus, TrendingDown, TrendingUp, UserCircle } from "lucide-react";
+import { Minus, TrendingDown, TrendingUp, UserCircle } from "lucide-react";
 import { Role } from "@prisma/client";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { SmartNavLink } from "@/components/layout/smart-nav-link";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { PushOptIn } from "@/components/notifications/push-opt-in";
 import { adminNavigation, playerNavigation } from "@/lib/constants";
 import { cn, formatPoints, getAvatarFallback, getDisplayName } from "@/lib/utils";
@@ -137,21 +138,10 @@ export function AppShell({
 
           <div className="flex items-center justify-start gap-3 sm:justify-end">
             <PushOptIn />
-            <SmartNavLink
-              href="/resenha"
-              ariaLabel="Abrir resenha e alertas"
-              className={cn(
-                "relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-100 transition hover:bg-white/10",
-                currentPath === "/resenha" && "border-brand-300/50 bg-brand-400/15 text-brand-100"
-              )}
-            >
-              <Bell className="h-5 w-5" />
-              {unreadNotifications > 0 ? (
-                <span className="absolute -right-1 -top-1 inline-flex min-h-6 min-w-6 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">
-                  {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                </span>
-              ) : null}
-            </SmartNavLink>
+            <NotificationBell
+              currentPath={currentPath}
+              unreadNotifications={unreadNotifications}
+            />
             <SmartNavLink
               href="/profile"
               ariaLabel="Abrir perfil"
