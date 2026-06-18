@@ -7,7 +7,7 @@ import type { AdminOfficialResultView, AdminSimulationView, AdminView } from "@/
 import { Panel } from "@/components/ui/panel";
 import { Flag } from "@/components/ui/flag";
 import { LoadingButton } from "@/components/ui/loading-button";
-import { phaseLabels, playerPositionShortLabels } from "@/lib/constants";
+import { phaseLabels } from "@/lib/constants";
 import { formatLongDate, formatPoints, relativeTime } from "@/lib/utils";
 
 const cardsEdges = [
@@ -35,11 +35,6 @@ export function AdminPanel({ data }: { data: AdminView }) {
   } | null>(null);
   const [aiScope, setAiScope] = useState<LeaderboardScope>(LeaderboardScope.OVERALL);
   const [launchResetFeedback, setLaunchResetFeedback] = useState<string | null>(null);
-  const [teamEditorFeedback, setTeamEditorFeedback] = useState<string | null>(null);
-  const [selectedTeamId, setSelectedTeamId] = useState<string>(data.playerTeams[0]?.teamId ?? "");
-  const [teamRosters, setTeamRosters] = useState(data.playerTeams);
-  const [editingNames, setEditingNames] = useState<Record<string, string>>({});
-  const [savingPlayerId, setSavingPlayerId] = useState<string | null>(null);
   const [simulationMatchId, setSimulationMatchId] = useState<string>(
     data.simulationMatches[0]?.id ?? ""
   );
@@ -54,21 +49,10 @@ export function AdminPanel({ data }: { data: AdminView }) {
   const [simulationPreview, setSimulationPreview] = useState<AdminSimulationView | null>(null);
   const [officialResult, setOfficialResult] = useState<AdminOfficialResultView | null>(null);
   const [pending, startTransition] = useTransition();
-  const selectedTeam = teamRosters.find((team) => team.teamId === selectedTeamId) ?? teamRosters[0] ?? null;
 
   useEffect(() => {
     setPendingUsers(data.pendingUsers);
   }, [data.pendingUsers]);
-
-  useEffect(() => {
-    setTeamRosters(data.playerTeams);
-  }, [data.playerTeams]);
-
-  useEffect(() => {
-    if (!selectedTeamId && data.playerTeams[0]?.teamId) {
-      setSelectedTeamId(data.playerTeams[0].teamId);
-    }
-  }, [data.playerTeams, selectedTeamId]);
 
   function updateApproval(userId: string, approvalStatus: "APPROVED" | "REJECTED") {
     startTransition(async () => {
@@ -220,152 +204,6 @@ export function AdminPanel({ data }: { data: AdminView }) {
             ) : null}
           </div>
           {feedback ? <p className="mt-4 text-sm text-brand-100">{feedback}</p> : null}
-        </Panel>
-
-        <Panel>
-          <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Elencos</p>
-          <h3 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-bold">
-            Editar nomes dos jogadores
-          </h3>
-          <p className="mt-2 text-sm text-slate-300">
-            Os slots e as posicoes ja estao pre-alocados. Aqui voce so ajusta os nomes reais de cada selecao, e o formulario de palpites passa a listar esses jogadores.
-          </p>
-
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <select
-              value={selectedTeamId}
-              onChange={(event) => {
-                setSelectedTeamId(event.target.value);
-                setTeamEditorFeedback(null);
-              }}
-              className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
-            >
-              {!teamRosters.length ? <option value="">Nenhuma selecao cadastrada</option> : null}
-              {teamRosters.map((team) => (
-                <option key={team.teamId} value={team.teamId}>
-                  {team.name} · {team.code}
-                </option>
-              ))}
-            </select>
-
-            {selectedTeam ? (
-              <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 px-4 py-3">
-                <Flag
-                  countryCode={selectedTeam.countryCode}
-                  fallbackLabel={selectedTeam.code}
-                  alt={`Bandeira de ${selectedTeam.name}`}
-                  size={32}
-                />
-                <div>
-                  <p className="font-semibold">{selectedTeam.name}</p>
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                    {selectedTeam.code} · {selectedTeam.players.length} slots
-                  </p>
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          {teamEditorFeedback ? <p className="mt-4 text-sm text-brand-100">{teamEditorFeedback}</p> : null}
-
-          {selectedTeam ? (
-            <div className="mt-4 max-h-[38rem] space-y-3 overflow-y-auto pr-1">
-              {selectedTeam.players.map((player) => {
-                const draftName = editingNames[player.id] ?? player.name;
-
-                return (
-                  <div
-                    key={player.id}
-                    className="grid gap-3 rounded-2xl border border-white/8 bg-white/5 p-4 lg:grid-cols-[auto_1fr_auto]"
-                  >
-                    <div className="min-w-[84px]">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                        Slot {String(player.slotNumber).padStart(2, "0")}
-                      </p>
-                      <p className="mt-1 font-semibold">
-                        {playerPositionShortLabels[player.position]}
-                      </p>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <input
-                        value={draftName}
-                        onChange={(event) =>
-                          setEditingNames((current) => ({
-                            ...current,
-                            [player.id]: event.target.value
-                          }))
-                        }
-                        placeholder="Nome oficial do jogador"
-                        className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
-                      />
-                      <p className="text-xs text-slate-500">
-                        Nome curto atual: {player.shortName ?? "sem apelido"}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={pending || savingPlayerId === player.id || !draftName.trim()}
-                      onClick={() =>
-                        startTransition(async () => {
-                          setTeamEditorFeedback(null);
-                          setSavingPlayerId(player.id);
-
-                          const response = await fetch("/api/admin/players", {
-                            method: "PATCH",
-                            headers: {
-                              "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                              playerId: player.id,
-                              name: draftName
-                            })
-                          });
-
-                          const payload = await response.json();
-                          setSavingPlayerId(null);
-
-                          if (!response.ok) {
-                            setTeamEditorFeedback(payload.error ?? "Nao foi possivel salvar o jogador.");
-                            return;
-                          }
-
-                          setTeamRosters((current) =>
-                            current.map((team) =>
-                              team.teamId === selectedTeam.teamId
-                                ? {
-                                    ...team,
-                                    players: team.players.map((item) =>
-                                      item.id === player.id
-                                        ? {
-                                            ...item,
-                                            name: payload.player.name,
-                                            shortName: payload.player.shortName
-                                          }
-                                        : item
-                                    )
-                                  }
-                                : team
-                            )
-                          );
-
-                          setEditingNames((current) => ({
-                            ...current,
-                            [player.id]: payload.player.name
-                          }));
-                          setTeamEditorFeedback(`Jogador salvo em ${selectedTeam.name}.`);
-                        })
-                      }
-                      className="rounded-2xl bg-brand-400 px-4 py-3 font-semibold text-slate-950 disabled:opacity-60"
-                    >
-                      {savingPlayerId === player.id ? "Salvando..." : "Salvar"}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
         </Panel>
 
         <Panel>
