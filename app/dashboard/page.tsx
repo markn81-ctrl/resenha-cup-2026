@@ -60,32 +60,17 @@ export default async function DashboardPage() {
             {data.upcomingMatches.slice(1, 4).length ? (
               <Panel>
                 <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Na sequencia</p>
-                <div className="mt-4 grid gap-3">
-                  {data.upcomingMatches.slice(1, 4).map((match) => (
-                    <div
-                      key={match.id}
-                      className="flex flex-col gap-2 rounded-2xl border border-white/8 bg-white/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold">
-                          Jogo {match.number}: {match.homeTeam} x {match.awayTeam}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          {new Intl.DateTimeFormat("pt-BR", {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                            timeZone: "America/Sao_Paulo"
-                          }).format(match.startsAt)}
-                        </p>
-                      </div>
-                      <span className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                        {match.prediction ? "Palpitado" : "Pendente"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <h2 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-bold">
+                  Proximos palpites
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  Os proximos jogos tambem ficam prontos para criar ou editar palpite sem sair do Inicio.
+                </p>
               </Panel>
             ) : null}
+            {data.upcomingMatches.slice(1, 4).map((match) => (
+              <MatchCard key={match.id} match={match} />
+            ))}
             {!data.upcomingMatches.length ? (
               <Panel>
                 <p className="text-sm text-slate-300">
