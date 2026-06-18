@@ -93,7 +93,7 @@ export default async function MatchesPage({
         </div>
 
         {matches.map((match) => (
-          <MatchCard key={match.id} match={match} />
+          <MatchCard key={`${selectedTab}:${match.id}`} match={match} />
         ))}
         {!matches.length ? (
           <Panel>

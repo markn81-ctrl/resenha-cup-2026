@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { MatchCardData } from "@/types/app";
 import { PredictionForm } from "@/components/matches/prediction-form";
 import { usePredictionLock } from "@/components/matches/use-prediction-lock";
@@ -52,6 +52,15 @@ export function PredictionPanel({ match }: { match: MatchCardData }) {
       : currentMatch.prediction
         ? "Editar palpite"
         : "Criar palpite";
+
+  useEffect(() => {
+    setIsOpen(false);
+    setCurrentMatch(match);
+    setLoadedMatch(match.homePlayers.length || match.awayPlayers.length ? match : null);
+    setIsLoading(false);
+    setError(null);
+    setSuccessMessage(null);
+  }, [match]);
 
   async function openPredictionForm() {
     if (closed) {
