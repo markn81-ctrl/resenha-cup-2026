@@ -6,14 +6,21 @@ import { Panel } from "@/components/ui/panel";
 
 export function FeedComposer() {
   const [message, setMessage] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [pending, startTransition] = useTransition();
+  const canPublish = content.trim().length >= 2;
 
   return (
     <Panel>
       <form
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
-          const formData = new FormData(event.currentTarget);
+
+          if (!canPublish) {
+            return;
+          }
+
           startTransition(async () => {
             setMessage(null);
             const response = await fetch("/api/feed", {
@@ -22,13 +29,21 @@ export function FeedComposer() {
                 "Content-Type": "application/json"
               },
               body: JSON.stringify({
-                title: formData.get("title") || undefined,
-                content: formData.get("content")
+                title: title.trim() || undefined,
+                content: content.trim()
               })
             });
 
             const payload = await response.json();
-            setMessage(response.ok ? "Post publicado. Atualize para ver no feed." : payload.error);
+
+            if (!response.ok) {
+              setMessage(payload.error ?? "Nao foi possivel publicar.");
+              return;
+            }
+
+            setTitle("");
+            setContent("");
+            setMessage("Post publicado. Atualize para ver no feed.");
           });
         }}
         className="grid gap-3"
@@ -41,11 +56,21 @@ export function FeedComposer() {
         </div>
         <input
           name="title"
+          value={title}
+          onChange={(event) => {
+            setTitle(event.target.value);
+            setMessage(null);
+          }}
           placeholder="Titulo opcional"
           className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
         />
         <textarea
           name="content"
+          value={content}
+          onChange={(event) => {
+            setContent(event.target.value);
+            setMessage(null);
+          }}
           required
           minLength={2}
           maxLength={500}
@@ -57,8 +82,8 @@ export function FeedComposer() {
           <p className="text-sm text-slate-400">Use humor, rivalidade e palpites quentes.</p>
           <button
             type="submit"
-            disabled={pending}
-            className="rounded-2xl bg-brand-400 px-5 py-3 font-semibold text-slate-950 disabled:opacity-60"
+            disabled={pending || !canPublish}
+            className="rounded-2xl bg-brand-400 px-5 py-3 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending ? "Publicando..." : "Publicar"}
           </button>
