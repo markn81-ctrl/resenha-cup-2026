@@ -23,9 +23,13 @@ const cardsRanges = [
   { value: CardsRange.FIVE_PLUS, label: "5+" }
 ];
 
+function getDefaultSimulationMatch(matches: AdminView["simulationMatches"]) {
+  return matches.find((match) => !match.result) ?? matches[0] ?? null;
+}
+
 export function AdminPanel({ data }: { data: AdminView }) {
   const router = useRouter();
-  const initialSimulationMatch = data.simulationMatches[0] ?? null;
+  const initialSimulationMatch = getDefaultSimulationMatch(data.simulationMatches);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
   const [aiPreview, setAiPreview] = useState<string | null>(null);
@@ -62,6 +66,26 @@ export function AdminPanel({ data }: { data: AdminView }) {
   useEffect(() => {
     setPendingUsers(data.pendingUsers);
   }, [data.pendingUsers]);
+
+  useEffect(() => {
+    const currentMatch =
+      data.simulationMatches.find((match) => match.id === simulationMatchId) ?? null;
+
+    if (currentMatch && !currentMatch.result) {
+      return;
+    }
+
+    const nextMatch = getDefaultSimulationMatch(data.simulationMatches);
+
+    if (!nextMatch || nextMatch.id === simulationMatchId) {
+      return;
+    }
+
+    setSimulationMatchId(nextMatch.id);
+    fillSimulationFieldsFromMatch(nextMatch);
+    setOfficialResult(null);
+    invalidateSimulation();
+  }, [data.simulationMatches, simulationMatchId]);
 
   const selectedSimulationMatch =
     data.simulationMatches.find((match) => match.id === simulationMatchId) ?? null;
