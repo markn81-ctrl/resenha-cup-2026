@@ -312,7 +312,9 @@ export function AdminPanel({ data }: { data: AdminView }) {
                     setSimulationCardsEdge(result.cards.edge);
                     setSimulationCardsRange(result.cards.range);
                     setSimulationFeedback(
-                      "Sumula oficial carregada. Confira os dados e simule a pontuacao antes de aprovar."
+                      correctionMode
+                        ? "Sumula oficial carregada. Confira os dados, simule a correcao e aplique para recalcular o ranking."
+                        : "Sumula oficial carregada. Confira os dados e simule a pontuacao antes de aprovar."
                     );
                   } catch {
                     setSimulationFeedback(

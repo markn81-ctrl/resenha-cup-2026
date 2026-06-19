@@ -297,17 +297,12 @@ export async function fetchOfficialResultPreview(matchId: string) {
     where: { id: matchId },
     include: {
       homeTeam: true,
-      awayTeam: true,
-      result: true
+      awayTeam: true
     }
   });
 
   if (!match) {
     throw new Error("Jogo nao encontrado.");
-  }
-
-  if (match.result) {
-    throw new Error("Este jogo ja possui resultado oficial confirmado.");
   }
 
   const calendarUrl = new URL(`${FIFA_API_BASE_URL}/calendar/matches`);
