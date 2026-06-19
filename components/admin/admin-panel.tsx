@@ -25,6 +25,7 @@ const cardsRanges = [
 
 export function AdminPanel({ data }: { data: AdminView }) {
   const router = useRouter();
+  const initialSimulationMatch = data.simulationMatches[0] ?? null;
   const [feedback, setFeedback] = useState<string | null>(null);
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
   const [aiPreview, setAiPreview] = useState<string | null>(null);
@@ -36,15 +37,23 @@ export function AdminPanel({ data }: { data: AdminView }) {
   const [aiScope, setAiScope] = useState<LeaderboardScope>(LeaderboardScope.OVERALL);
   const [launchResetFeedback, setLaunchResetFeedback] = useState<string | null>(null);
   const [simulationMatchId, setSimulationMatchId] = useState<string>(
-    data.simulationMatches[0]?.id ?? ""
+    initialSimulationMatch?.id ?? ""
   );
-  const [simulationHomeScore, setSimulationHomeScore] = useState(1);
-  const [simulationAwayScore, setSimulationAwayScore] = useState(0);
-  const [simulationCardsEdge, setSimulationCardsEdge] = useState<CardsEdge>(CardsEdge.EQUAL);
+  const [simulationHomeScore, setSimulationHomeScore] = useState(
+    initialSimulationMatch?.result?.score.home ?? 1
+  );
+  const [simulationAwayScore, setSimulationAwayScore] = useState(
+    initialSimulationMatch?.result?.score.away ?? 0
+  );
+  const [simulationCardsEdge, setSimulationCardsEdge] = useState<CardsEdge>(
+    initialSimulationMatch?.result?.cardsEdge ?? CardsEdge.EQUAL
+  );
   const [simulationCardsRange, setSimulationCardsRange] = useState<CardsRange>(
-    CardsRange.THREE_FOUR
+    initialSimulationMatch?.result?.cardsRange ?? CardsRange.THREE_FOUR
   );
-  const [simulationScorers, setSimulationScorers] = useState("");
+  const [simulationScorers, setSimulationScorers] = useState(
+    initialSimulationMatch?.result?.scorers.join(", ") ?? ""
+  );
   const [simulationFeedback, setSimulationFeedback] = useState<string | null>(null);
   const [simulationPreview, setSimulationPreview] = useState<AdminSimulationView | null>(null);
   const [officialResult, setOfficialResult] = useState<AdminOfficialResultView | null>(null);
@@ -53,6 +62,20 @@ export function AdminPanel({ data }: { data: AdminView }) {
   useEffect(() => {
     setPendingUsers(data.pendingUsers);
   }, [data.pendingUsers]);
+
+  const selectedSimulationMatch =
+    data.simulationMatches.find((match) => match.id === simulationMatchId) ?? null;
+  const correctionMode = Boolean(selectedSimulationMatch?.result);
+
+  function fillSimulationFieldsFromMatch(
+    match: AdminView["simulationMatches"][number] | null
+  ) {
+    setSimulationHomeScore(match?.result?.score.home ?? 1);
+    setSimulationAwayScore(match?.result?.score.away ?? 0);
+    setSimulationScorers(match?.result?.scorers.join(", ") ?? "");
+    setSimulationCardsEdge(match?.result?.cardsEdge ?? CardsEdge.EQUAL);
+    setSimulationCardsRange(match?.result?.cardsRange ?? CardsRange.THREE_FOUR);
+  }
 
   function updateApproval(userId: string, approvalStatus: "APPROVED" | "REJECTED") {
     startTransition(async () => {
@@ -220,7 +243,12 @@ export function AdminPanel({ data }: { data: AdminView }) {
             <select
               value={simulationMatchId}
               onChange={(event) => {
+                const nextMatch =
+                  data.simulationMatches.find((match) => match.id === event.target.value) ??
+                  null;
+
                 setSimulationMatchId(event.target.value);
+                fillSimulationFieldsFromMatch(nextMatch);
                 setOfficialResult(null);
                 invalidateSimulation();
               }}
@@ -236,6 +264,17 @@ export function AdminPanel({ data }: { data: AdminView }) {
                 </option>
               ))}
             </select>
+
+            {correctionMode && selectedSimulationMatch?.result ? (
+              <div className="rounded-2xl border border-amber-300/25 bg-amber-400/10 p-4 text-sm text-amber-100">
+                <p className="font-semibold">Modo correcao auditada ativo</p>
+                <p className="mt-1">
+                  Resultado atual: {selectedSimulationMatch.result.score.home} x{" "}
+                  {selectedSimulationMatch.result.score.away}. Ao aplicar, o sistema atualiza este
+                  resultado, recalcula pontuacao/ranking e registra auditoria.
+                </p>
+              </div>
+            ) : null}
 
             <button
               type="button"
@@ -479,12 +518,20 @@ export function AdminPanel({ data }: { data: AdminView }) {
                   }
 
                   setSimulationPreview(payload.simulation);
-                  setSimulationFeedback("Simulacao pronta. Pode usar para conferir a contagem.");
+                  setSimulationFeedback(
+                    correctionMode
+                      ? "Simulacao de correcao pronta. A aplicacao final recalcula o ranking completo."
+                      : "Simulacao pronta. Pode usar para conferir a contagem."
+                  );
                 })
               }
               className="rounded-2xl bg-brand-400 px-5 py-3 font-semibold text-slate-950 disabled:opacity-60"
             >
-              {pending ? "Simulando..." : "Simular pontuacao"}
+              {pending
+                ? "Simulando..."
+                : correctionMode
+                  ? "Simular correcao"
+                  : "Simular pontuacao"}
             </button>
 
             <button
@@ -492,7 +539,9 @@ export function AdminPanel({ data }: { data: AdminView }) {
               disabled={pending || !simulationPreview || simulationPreview.match.id !== simulationMatchId}
               onClick={() => {
                 const confirmed = window.confirm(
-                  "Aprovar este resultado como oficial? A partida sera finalizada, os palpites serao pontuados e o ranking sera recalculado."
+                  correctionMode
+                    ? "Aplicar correcao auditada neste resultado? O placar oficial sera atualizado, os palpites serao reavaliados e o ranking sera recalculado."
+                    : "Aprovar este resultado como oficial? A partida sera finalizada, os palpites serao pontuados e o ranking sera recalculado."
                 );
 
                 if (!confirmed) {
@@ -531,20 +580,28 @@ export function AdminPanel({ data }: { data: AdminView }) {
 
                   setSimulationPreview(null);
                   setOfficialResult(null);
-                  const aiPostMessage = payload.aiPost?.postId
+                  const aiPostMessage = payload.result.corrected
+                    ? " Correcao auditada registrada; sem post automatico da IA."
+                    : payload.aiPost?.postId
                     ? " IAestagiaria publicou a resenha do resultado."
                     : payload.aiPost?.reason === "ai_post_failed"
                       ? " Resultado ok; IAestagiaria nao conseguiu publicar agora."
                       : "";
                   setSimulationFeedback(
-                    `Jogo ${payload.result.matchNumber} finalizado. ${payload.result.evaluatedPredictions} palpites avaliados e ranking atualizado.${aiPostMessage}`
+                    `Jogo ${payload.result.matchNumber} ${
+                      payload.result.corrected ? "corrigido" : "finalizado"
+                    }. ${payload.result.evaluatedPredictions} palpites avaliados e ranking atualizado.${aiPostMessage}`
                   );
                   router.refresh();
                 });
               }}
               className="rounded-2xl border border-emerald-300/30 bg-emerald-400/15 px-5 py-3 font-semibold text-emerald-100 disabled:opacity-40"
             >
-              {pending ? "Processando..." : "Aprovar resultado e atualizar ranking"}
+              {pending
+                ? "Processando..."
+                : correctionMode
+                  ? "Aplicar correcao auditada"
+                  : "Aprovar resultado e atualizar ranking"}
             </button>
           </div>
 
@@ -556,6 +613,13 @@ export function AdminPanel({ data }: { data: AdminView }) {
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
                   Jogo {simulationPreview.match.number} · {phaseLabels[simulationPreview.match.phase]}
                 </p>
+                {simulationPreview.match.isCorrection ? (
+                  <p className="mt-2 rounded-2xl border border-amber-300/25 bg-amber-400/10 p-3 text-sm text-amber-100">
+                    Previa de correcao: os pontos deste jogo foram reprojetados. Ao aplicar, o
+                    backend recalcula o ranking completo considerando tambem os impactos em
+                    sequencias de acerto.
+                  </p>
+                ) : null}
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <div className="flex items-center gap-3">
                     <Flag

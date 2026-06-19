@@ -440,7 +440,9 @@ export const demoAdmin: AdminView = {
       awayCode: match.awayCode ?? null,
       homeCountryCode: match.homeCountryCode ?? null,
       awayCountryCode: match.awayCountryCode ?? null,
-      predictionCount: 12 - index * 3
+      predictionCount: 12 - index * 3,
+      status: match.status,
+      result: null
     })),
   playerTeams: demoPlayerTeams
 };

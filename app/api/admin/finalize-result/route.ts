@@ -21,8 +21,8 @@ export async function POST(request: Request) {
     }
 
     const result = await finalizeMatchResult(parsed.data, session.user.id);
-    const aiPost = result.alreadyFinalized
-      ? { skipped: true, reason: "already_finalized" }
+    const aiPost = result.alreadyFinalized || result.corrected
+      ? { skipped: true, reason: result.corrected ? "result_corrected" : "already_finalized" }
       : await publishResultFinalizedAiPost(parsed.data.matchId, session.user.id).catch(() => ({
           skipped: true,
           reason: "ai_post_failed"

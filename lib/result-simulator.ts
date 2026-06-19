@@ -80,6 +80,11 @@ export async function simulateMatchResult(
     include: {
       homeTeam: true,
       awayTeam: true,
+      result: {
+        include: {
+          score: true
+        }
+      },
       predictions: {
         include: {
           score: true,
@@ -91,10 +96,6 @@ export async function simulateMatchResult(
 
   if (!match) {
     throw new Error("Jogo nao encontrado.");
-  }
-
-  if (match.status === MatchStatus.FINISHED) {
-    throw new Error("Use o simulador em jogos ainda nao finalizados.");
   }
 
   const simulatedResult = {
@@ -152,6 +153,24 @@ export async function simulateMatchResult(
       countScorerHits(prediction.scorers, simulatedResult.scorers),
       2
     );
+    const previousMatchPoints = match.result ? prediction.points : 0;
+    const previousScorerHits = match.result
+      ? Math.min(countScorerHits(prediction.scorers, match.result.scorers), 2)
+      : 0;
+    const previousBreakdown = match.result
+      ? calculatePredictionScore({
+          prediction: {
+            outcome: prediction.outcome,
+            score: prediction.score,
+            scorers: prediction.scorers,
+            cardsEdge: prediction.cardsEdge,
+            cardsRange: prediction.cardsRange
+          },
+          result: match.result,
+          phase: match.phase,
+          streakBefore: 0
+        })
+      : null;
 
     return {
       userId: prediction.userId,
@@ -160,6 +179,10 @@ export async function simulateMatchResult(
       image: prediction.user.image,
       breakdown,
       scorerHits,
+      previousMatchPoints,
+      previousScorerHits,
+      previousExactHit: previousBreakdown?.exactHit ?? false,
+      previousWinnerHit: previousBreakdown?.winnerHit ?? false,
       currentOverall: overallMap.get(prediction.userId)
     };
   });
@@ -192,11 +215,18 @@ export async function simulateMatchResult(
 
     projectedOverall.set(result.userId, {
       ...current,
-      projectedTotal: current.projectedTotal + result.breakdown.total,
-      projectedExactScores: current.projectedExactScores + (result.breakdown.exactHit ? 1 : 0),
+      projectedTotal:
+        current.projectedTotal - result.previousMatchPoints + result.breakdown.total,
+      projectedExactScores:
+        current.projectedExactScores -
+        (result.previousExactHit ? 1 : 0) +
+        (result.breakdown.exactHit ? 1 : 0),
       projectedCorrectWinners:
-        current.projectedCorrectWinners + (result.breakdown.winnerHit ? 1 : 0),
-      projectedCorrectScorers: current.projectedCorrectScorers + result.scorerHits
+        current.projectedCorrectWinners -
+        (result.previousWinnerHit ? 1 : 0) +
+        (result.breakdown.winnerHit ? 1 : 0),
+      projectedCorrectScorers:
+        current.projectedCorrectScorers - result.previousScorerHits + result.scorerHits
     });
   }
 
@@ -238,7 +268,10 @@ export async function simulateMatchResult(
       currentPosition: result.currentOverall?.currentPosition ?? null,
       projectedPosition: projectedPositionMap.get(result.userId) ?? null,
       previousTotal: result.currentOverall?.totalPoints ?? 0,
-      projectedTotal: (result.currentOverall?.totalPoints ?? 0) + result.breakdown.total,
+      projectedTotal:
+        (result.currentOverall?.totalPoints ?? 0) -
+        result.previousMatchPoints +
+        result.breakdown.total,
       matchPoints: result.breakdown.total,
       winnerHit: result.breakdown.winnerHit,
       exactHit: result.breakdown.exactHit,
@@ -287,7 +320,8 @@ export async function simulateMatchResult(
       homeCode: match.homeTeam?.code ?? null,
       awayCode: match.awayTeam?.code ?? null,
       homeCountryCode: match.homeTeam?.countryCode ?? null,
-      awayCountryCode: match.awayTeam?.countryCode ?? null
+      awayCountryCode: match.awayTeam?.countryCode ?? null,
+      isCorrection: Boolean(match.result)
     },
     summary: {
       predictionsCount: results.length,

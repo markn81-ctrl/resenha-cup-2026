@@ -745,6 +745,7 @@ export async function getAdminData(): Promise<AdminView> {
   }
 
   try {
+    const simulationWindowStart = new Date(Date.now() - 36 * 60 * 60 * 1000);
     const [pendingUsers, recentAudit, users, approvedUsers, posts, predictions, scopes, simulationMatches, playerTeams] = await Promise.all([
       prisma.user.findMany({
         where: { approvalStatus: ApprovalStatus.PENDING, role: Role.USER },
@@ -779,13 +780,19 @@ export async function getAdminData(): Promise<AdminView> {
       ]),
       prisma.match.findMany({
         where: {
-          status: {
-            not: MatchStatus.FINISHED
-          }
+          OR: [
+            { status: { not: MatchStatus.FINISHED } },
+            { startsAt: { gte: simulationWindowStart } }
+          ]
         },
         include: {
           homeTeam: true,
           awayTeam: true,
+          result: {
+            include: {
+              score: true
+            }
+          },
           _count: {
             select: {
               predictions: true
@@ -858,7 +865,19 @@ export async function getAdminData(): Promise<AdminView> {
         awayCode: match.awayTeam?.code ?? null,
         homeCountryCode: match.homeTeam?.countryCode ?? null,
         awayCountryCode: match.awayTeam?.countryCode ?? null,
-        predictionCount: match._count.predictions
+        predictionCount: match._count.predictions,
+        status: getEffectiveMatchStatus(match.status, match.lockAt),
+        result: match.result
+          ? {
+              score: {
+                home: match.result.score.home,
+                away: match.result.score.away
+              },
+              scorers: match.result.scorers,
+              cardsEdge: match.result.cardsEdge,
+              cardsRange: match.result.cardsRange
+            }
+          : null
       })),
       playerTeams: mapAdminTeamRoster(playerTeams)
     };

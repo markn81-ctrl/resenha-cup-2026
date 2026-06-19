@@ -238,6 +238,16 @@ export type AdminView = {
     homeCountryCode?: string | null;
     awayCountryCode?: string | null;
     predictionCount: number;
+    status: MatchStatus;
+    result?: {
+      score: {
+        home: number;
+        away: number;
+      };
+      scorers: string[];
+      cardsEdge: CardsEdge;
+      cardsRange: CardsRange;
+    } | null;
   }>;
   playerTeams: AdminTeamRosterView[];
 };
@@ -255,6 +265,7 @@ export type AdminSimulationView = {
     awayCode?: string | null;
     homeCountryCode?: string | null;
     awayCountryCode?: string | null;
+    isCorrection?: boolean;
   };
   summary: {
     predictionsCount: number;

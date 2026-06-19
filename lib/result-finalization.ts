@@ -15,6 +15,8 @@ import {
 } from "@/lib/scoring";
 import { syncRivalries } from "@/lib/rivalries";
 
+export const RESULT_FINALIZATION_MIN_ELAPSED_MINUTES = 135;
+
 export type FinalResultInput = {
   matchId: string;
   score: {
@@ -43,6 +45,26 @@ type PredictionUpdate = {
   streakApplied: number;
   multiplier: number;
 };
+
+function getResultFinalizationAvailableAt(startsAt: Date) {
+  return new Date(
+    startsAt.getTime() + RESULT_FINALIZATION_MIN_ELAPSED_MINUTES * 60 * 1000
+  );
+}
+
+function assertResultCanBeFinalized(match: { startsAt: Date }, now = new Date()) {
+  const availableAt = getResultFinalizationAvailableAt(match.startsAt);
+
+  if (now < availableAt) {
+    throw new Error(
+      `Resultado oficial so pode ser aprovado ${RESULT_FINALIZATION_MIN_ELAPSED_MINUTES} minutos depois do inicio do jogo. Disponivel a partir de ${availableAt.toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        dateStyle: "short",
+        timeStyle: "short"
+      })}.`
+    );
+  }
+}
 
 function resultMatchesInput(
   result: {
@@ -245,19 +267,75 @@ export async function finalizeMatchResult(
       }
 
       if (match.result) {
+        const previousResult = {
+          outcome: match.result.outcome,
+          score: {
+            home: match.result.score.home,
+            away: match.result.score.away
+          },
+          scorers: match.result.scorers,
+          cardsEdge: match.result.cardsEdge,
+          cardsRange: match.result.cardsRange
+        };
+
         if (!resultMatchesInput(match.result, input)) {
-          throw new Error(
-            "Este jogo ja possui outro resultado oficial. Use um fluxo de correcao auditada."
-          );
+          await tx.score.update({
+            where: { id: match.result.scoreId },
+            data: input.score
+          });
+
+          await tx.matchResult.update({
+            where: { id: match.result.id },
+            data: {
+              outcome: deriveOutcome(input.score),
+              scorers: input.scorers,
+              cardsEdge: input.cardsEdge,
+              cardsRange: input.cardsRange
+            }
+          });
+
+          const ranking = await rebuildRankings(tx);
+
+          await tx.auditLog.create({
+            data: {
+              actorId: actorId ?? null,
+              action: "match.result.corrected",
+              entityType: "Match",
+              entityId: match.id,
+              payload: {
+                matchNumber: match.number,
+                previousResult,
+                nextResult: {
+                  outcome: deriveOutcome(input.score),
+                  score: input.score,
+                  scorers: input.scorers,
+                  cardsEdge: input.cardsEdge,
+                  cardsRange: input.cardsRange
+                },
+                ...ranking
+              }
+            }
+          });
+
+          return {
+            matchNumber: match.number,
+            alreadyFinalized: false,
+            corrected: true,
+            score: input.score,
+            ...ranking
+          };
         }
 
         return {
           matchNumber: match.number,
           alreadyFinalized: true,
+          corrected: false,
           score: input.score,
           ...(await rebuildRankings(tx))
         };
       }
+
+      assertResultCanBeFinalized(match);
 
       const score = await tx.score.create({
         data: input.score
@@ -301,6 +379,7 @@ export async function finalizeMatchResult(
       return {
         matchNumber: match.number,
         alreadyFinalized: false,
+        corrected: false,
         score: input.score,
         ...ranking
       };
