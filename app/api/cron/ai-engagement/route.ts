@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { publishDailyWorldCupEngagementPost } from "@/lib/daily-world-cup-engagement";
+import { publishKnockoutCountdownPost } from "@/lib/knockout-countdown-engagement";
 
 export const dynamic = "force-dynamic";
 
@@ -22,12 +23,24 @@ async function handler(request: Request) {
     return NextResponse.json({ error: "Nao autorizado." }, { status: 401 });
   }
 
-  const dailyEngagement = await publishDailyWorldCupEngagementPost();
+  const [dailyEngagement, knockoutCountdown] = await Promise.all([
+    publishDailyWorldCupEngagementPost().catch((error) => ({
+      skipped: true,
+      reason: "daily_engagement_failed",
+      error: error instanceof Error ? error.message : "Falha no giro diario."
+    })),
+    publishKnockoutCountdownPost().catch((error) => ({
+      skipped: true,
+      reason: "knockout_countdown_failed",
+      error: error instanceof Error ? error.message : "Falha na contagem regressiva."
+    }))
+  ]);
 
   return NextResponse.json({
     ok: true,
     summary: {
-      dailyEngagement
+      dailyEngagement,
+      knockoutCountdown
     }
   });
 }
