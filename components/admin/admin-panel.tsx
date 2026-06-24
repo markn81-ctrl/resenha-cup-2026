@@ -43,6 +43,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
   const [simulationMatchId, setSimulationMatchId] = useState<string>(
     initialSimulationMatch?.id ?? ""
   );
+  const [manualSimulationMatchId, setManualSimulationMatchId] = useState<string | null>(null);
   const [simulationHomeScore, setSimulationHomeScore] = useState(
     initialSimulationMatch?.result?.score.home ?? 1
   );
@@ -71,8 +72,14 @@ export function AdminPanel({ data }: { data: AdminView }) {
     const currentMatch =
       data.simulationMatches.find((match) => match.id === simulationMatchId) ?? null;
 
-    if (currentMatch && !currentMatch.result) {
-      return;
+    if (currentMatch) {
+      if (manualSimulationMatchId === simulationMatchId) {
+        return;
+      }
+
+      if (!currentMatch.result) {
+        return;
+      }
     }
 
     const nextMatch = getDefaultSimulationMatch(data.simulationMatches);
@@ -82,10 +89,11 @@ export function AdminPanel({ data }: { data: AdminView }) {
     }
 
     setSimulationMatchId(nextMatch.id);
+    setManualSimulationMatchId(null);
     fillSimulationFieldsFromMatch(nextMatch);
     setOfficialResult(null);
     invalidateSimulation();
-  }, [data.simulationMatches, simulationMatchId]);
+  }, [data.simulationMatches, manualSimulationMatchId, simulationMatchId]);
 
   const selectedSimulationMatch =
     data.simulationMatches.find((match) => match.id === simulationMatchId) ?? null;
@@ -272,6 +280,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
                   null;
 
                 setSimulationMatchId(event.target.value);
+                setManualSimulationMatchId(event.target.value);
                 fillSimulationFieldsFromMatch(nextMatch);
                 setOfficialResult(null);
                 invalidateSimulation();
@@ -606,6 +615,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
 
                   setSimulationPreview(null);
                   setOfficialResult(null);
+                  setManualSimulationMatchId(null);
                   const aiPostMessage = payload.result.corrected
                     ? " Correcao auditada registrada; sem post automatico da IA."
                     : payload.aiPost?.postId
