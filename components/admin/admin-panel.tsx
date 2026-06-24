@@ -3,7 +3,12 @@
 import { CardsEdge, CardsRange, LeaderboardScope } from "@prisma/client";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { AdminOfficialResultView, AdminSimulationView, AdminView } from "@/types/app";
+import type {
+  AdminKnockoutMatchupsView,
+  AdminOfficialResultView,
+  AdminSimulationView,
+  AdminView
+} from "@/types/app";
 import { Panel } from "@/components/ui/panel";
 import { Flag } from "@/components/ui/flag";
 import { LoadingButton } from "@/components/ui/loading-button";
@@ -24,6 +29,22 @@ const cardsRanges = [
 ];
 
 type SimulationScoreInput = number | "";
+
+const matchupStatusLabels: Record<AdminKnockoutMatchupsView["matches"][number]["status"], string> = {
+  READY: "Pronto para aplicar",
+  UNCHANGED: "Ja atualizado",
+  UNAVAILABLE: "Aguardando FIFA",
+  MISSING_TEAM: "Selecao nao cadastrada",
+  FINISHED: "Finalizado"
+};
+
+const matchupStatusClasses: Record<AdminKnockoutMatchupsView["matches"][number]["status"], string> = {
+  READY: "border-emerald-300/30 bg-emerald-400/10 text-emerald-100",
+  UNCHANGED: "border-sky-300/25 bg-sky-400/10 text-sky-100",
+  UNAVAILABLE: "border-amber-300/25 bg-amber-400/10 text-amber-100",
+  MISSING_TEAM: "border-rose-300/25 bg-rose-400/10 text-rose-100",
+  FINISHED: "border-white/10 bg-white/5 text-slate-300"
+};
 
 function getDefaultSimulationMatch(matches: AdminView["simulationMatches"]) {
   return matches.find((match) => !match.result) ?? matches[0] ?? null;
@@ -54,6 +75,8 @@ export function AdminPanel({ data }: { data: AdminView }) {
   const [simulationFeedback, setSimulationFeedback] = useState<string | null>(null);
   const [simulationPreview, setSimulationPreview] = useState<AdminSimulationView | null>(null);
   const [officialResult, setOfficialResult] = useState<AdminOfficialResultView | null>(null);
+  const [knockoutMatchups, setKnockoutMatchups] = useState<AdminKnockoutMatchupsView | null>(null);
+  const [knockoutFeedback, setKnockoutFeedback] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -170,6 +193,78 @@ export function AdminPanel({ data }: { data: AdminView }) {
     });
   }
 
+  function fetchKnockoutMatchups() {
+    startTransition(async () => {
+      setKnockoutFeedback(null);
+
+      try {
+        const response = await fetch("/api/admin/knockout-matchups", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ action: "preview" })
+        });
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          setKnockoutMatchups(null);
+          setKnockoutFeedback(
+            payload?.error ?? "Nao foi possivel buscar confrontos na FIFA."
+          );
+          return;
+        }
+
+        setKnockoutMatchups(payload.preview as AdminKnockoutMatchupsView);
+        setKnockoutFeedback("Confrontos consultados. Confira antes de aplicar.");
+      } catch {
+        setKnockoutMatchups(null);
+        setKnockoutFeedback("Nao foi possivel falar com a FIFA agora. Tente novamente.");
+      }
+    });
+  }
+
+  function applyKnockoutMatchups() {
+    const readyCount = knockoutMatchups?.summary.ready ?? 0;
+    const confirmed = window.confirm(
+      `Aplicar ${readyCount} confronto(s) do mata-mata retornado(s) pela FIFA? Palpites e pontuacao nao serao alterados.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    startTransition(async () => {
+      setKnockoutFeedback(null);
+
+      try {
+        const response = await fetch("/api/admin/knockout-matchups", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ action: "apply" })
+        });
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          setKnockoutFeedback(
+            payload?.error ?? "Nao foi possivel aplicar os confrontos."
+          );
+          return;
+        }
+
+        setKnockoutMatchups(payload.preview as AdminKnockoutMatchupsView);
+        setKnockoutFeedback(
+          `${payload.applied ?? 0} confronto(s) atualizado(s). Palpites preservados.`
+        );
+        router.refresh();
+      } catch {
+        setKnockoutFeedback("Nao foi possivel aplicar os confrontos agora. Tente novamente.");
+      }
+    });
+  }
+
   function invalidateSimulation() {
     setSimulationPreview(null);
     setSimulationFeedback(null);
@@ -282,6 +377,108 @@ export function AdminPanel({ data }: { data: AdminView }) {
             ) : null}
           </div>
           {feedback ? <p className="mt-4 text-sm text-brand-100">{feedback}</p> : null}
+        </Panel>
+
+        <Panel>
+          <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Mata-mata</p>
+          <h3 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-bold">
+            Atualizar confrontos oficiais
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            Busca na FIFA os times definidos para os jogos de mata-mata. Voce confere o
+            preview e aplica somente os confrontos prontos; palpites, placares e ranking nao
+            sao alterados.
+          </p>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={fetchKnockoutMatchups}
+              className="rounded-2xl border border-sky-300/30 bg-sky-400/10 px-5 py-3 font-semibold text-sky-100 disabled:opacity-40"
+            >
+              {pending ? "Consultando..." : "Buscar confrontos na FIFA"}
+            </button>
+            <button
+              type="button"
+              disabled={pending || !knockoutMatchups?.summary.ready}
+              onClick={applyKnockoutMatchups}
+              className="rounded-2xl border border-emerald-300/30 bg-emerald-400/15 px-5 py-3 font-semibold text-emerald-100 disabled:opacity-40"
+            >
+              {pending ? "Aplicando..." : "Aplicar atualizacao confirmada"}
+            </button>
+          </div>
+
+          {knockoutFeedback ? (
+            <p className="mt-4 text-sm text-brand-100">{knockoutFeedback}</p>
+          ) : null}
+
+          {knockoutMatchups ? (
+            <div className="mt-5 space-y-4">
+              <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-5">
+                <div className="rounded-2xl bg-slate-950/35 p-3">
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Prontos</p>
+                  <p className="mt-2 text-2xl font-bold">{knockoutMatchups.summary.ready}</p>
+                </div>
+                <div className="rounded-2xl bg-slate-950/35 p-3">
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Atualizados</p>
+                  <p className="mt-2 text-2xl font-bold">{knockoutMatchups.summary.unchanged}</p>
+                </div>
+                <div className="rounded-2xl bg-slate-950/35 p-3">
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Aguardando</p>
+                  <p className="mt-2 text-2xl font-bold">{knockoutMatchups.summary.unavailable}</p>
+                </div>
+                <div className="rounded-2xl bg-slate-950/35 p-3">
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Pendencias</p>
+                  <p className="mt-2 text-2xl font-bold">{knockoutMatchups.summary.missingTeam}</p>
+                </div>
+                <div className="rounded-2xl bg-slate-950/35 p-3">
+                  <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Finalizados</p>
+                  <p className="mt-2 text-2xl font-bold">{knockoutMatchups.summary.finished}</p>
+                </div>
+              </div>
+
+              <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
+                {knockoutMatchups.matches.map((match) => (
+                  <div
+                    key={match.matchId}
+                    className="rounded-2xl border border-white/8 bg-white/5 p-4"
+                  >
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                          Jogo {match.number} · {phaseLabels[match.phase]} ·{" "}
+                          {formatLongDate(match.startsAt)}
+                        </p>
+                        <p className="mt-2 font-semibold text-slate-100">
+                          Atual: {match.current.homeTeam} x {match.current.awayTeam}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-300">
+                          FIFA:{" "}
+                          {match.official
+                            ? `${match.official.homeTeam} x ${match.official.awayTeam}`
+                            : "confronto ainda nao disponivel"}
+                        </p>
+                      </div>
+                      <span
+                        className={`w-fit rounded-full border px-3 py-1 text-xs font-semibold ${matchupStatusClasses[match.status]}`}
+                      >
+                        {matchupStatusLabels[match.status]}
+                      </span>
+                    </div>
+
+                    {match.warnings.length ? (
+                      <div className="mt-3 space-y-1 text-sm text-amber-100">
+                        {match.warnings.map((warning) => (
+                          <p key={warning}>{warning}</p>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </Panel>
 
         <Panel>

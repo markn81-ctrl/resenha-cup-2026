@@ -345,3 +345,43 @@ export type AdminOfficialResultView = {
   };
   warnings: string[];
 };
+
+export type AdminKnockoutMatchupsView = {
+  source: {
+    name: string;
+    url: string;
+    fetchedAt: string;
+  };
+  summary: {
+    total: number;
+    ready: number;
+    unchanged: number;
+    unavailable: number;
+    missingTeam: number;
+    finished: number;
+  };
+  matches: Array<{
+    matchId: string;
+    number: number;
+    phase: Phase;
+    startsAt: string;
+    status: "READY" | "UNCHANGED" | "UNAVAILABLE" | "MISSING_TEAM" | "FINISHED";
+    canApply: boolean;
+    warnings: string[];
+    current: {
+      homeTeam: string;
+      awayTeam: string;
+      homeCode?: string | null;
+      awayCode?: string | null;
+    };
+    official?: {
+      fifaMatchId: string;
+      homeTeam: string;
+      awayTeam: string;
+      homeCode: string;
+      awayCode: string;
+      homeCountryCode?: string | null;
+      awayCountryCode?: string | null;
+    };
+  }>;
+};

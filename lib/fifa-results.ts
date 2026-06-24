@@ -3,16 +3,16 @@ import { addHours, subHours } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { deriveCardsEdge, deriveCardsRange } from "@/lib/scoring";
 
-const FIFA_API_BASE_URL = "https://api.fifa.com/api/v3";
-const FIFA_WORLD_CUP_COMPETITION_ID = "17";
-const FIFA_WORLD_CUP_2026_SEASON_ID = "285023";
+export const FIFA_API_BASE_URL = "https://api.fifa.com/api/v3";
+export const FIFA_WORLD_CUP_COMPETITION_ID = "17";
+export const FIFA_WORLD_CUP_2026_SEASON_ID = "285023";
 
 type LocalizedText = Array<{
   Locale?: string | null;
   Description?: string | null;
 }>;
 
-type FifaCalendarMatch = {
+export type FifaCalendarMatch = {
   IdCompetition?: string | null;
   IdSeason?: string | null;
   IdMatch?: string | null;
@@ -265,7 +265,7 @@ export function parseFifaMatchDetails(
   };
 }
 
-async function fetchFifaJson<T>(url: URL): Promise<T> {
+export async function fetchFifaJson<T>(url: URL): Promise<T> {
   const response = await fetch(url, {
     cache: "no-store",
     headers: {
