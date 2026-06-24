@@ -23,6 +23,8 @@ const cardsRanges = [
   { value: CardsRange.FIVE_PLUS, label: "5+" }
 ];
 
+type SimulationScoreInput = number | "";
+
 function getDefaultSimulationMatch(matches: AdminView["simulationMatches"]) {
   return matches.find((match) => !match.result) ?? matches[0] ?? null;
 }
@@ -44,21 +46,11 @@ export function AdminPanel({ data }: { data: AdminView }) {
     initialSimulationMatch?.id ?? ""
   );
   const [manualSimulationMatchId, setManualSimulationMatchId] = useState<string | null>(null);
-  const [simulationHomeScore, setSimulationHomeScore] = useState(
-    initialSimulationMatch?.result?.score.home ?? 1
-  );
-  const [simulationAwayScore, setSimulationAwayScore] = useState(
-    initialSimulationMatch?.result?.score.away ?? 0
-  );
-  const [simulationCardsEdge, setSimulationCardsEdge] = useState<CardsEdge>(
-    initialSimulationMatch?.result?.cardsEdge ?? CardsEdge.EQUAL
-  );
-  const [simulationCardsRange, setSimulationCardsRange] = useState<CardsRange>(
-    initialSimulationMatch?.result?.cardsRange ?? CardsRange.THREE_FOUR
-  );
-  const [simulationScorers, setSimulationScorers] = useState(
-    initialSimulationMatch?.result?.scorers.join(", ") ?? ""
-  );
+  const [simulationHomeScore, setSimulationHomeScore] = useState<SimulationScoreInput>("");
+  const [simulationAwayScore, setSimulationAwayScore] = useState<SimulationScoreInput>("");
+  const [simulationCardsEdge, setSimulationCardsEdge] = useState<CardsEdge | "">("");
+  const [simulationCardsRange, setSimulationCardsRange] = useState<CardsRange | "">("");
+  const [simulationScorers, setSimulationScorers] = useState("");
   const [simulationFeedback, setSimulationFeedback] = useState<string | null>(null);
   const [simulationPreview, setSimulationPreview] = useState<AdminSimulationView | null>(null);
   const [officialResult, setOfficialResult] = useState<AdminOfficialResultView | null>(null);
@@ -90,7 +82,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
 
     setSimulationMatchId(nextMatch.id);
     setManualSimulationMatchId(null);
-    fillSimulationFieldsFromMatch(nextMatch);
+    resetSimulationFields();
     setOfficialResult(null);
     invalidateSimulation();
   }, [data.simulationMatches, manualSimulationMatchId, simulationMatchId]);
@@ -99,14 +91,45 @@ export function AdminPanel({ data }: { data: AdminView }) {
     data.simulationMatches.find((match) => match.id === simulationMatchId) ?? null;
   const correctionMode = Boolean(selectedSimulationMatch?.result);
 
-  function fillSimulationFieldsFromMatch(
-    match: AdminView["simulationMatches"][number] | null
-  ) {
-    setSimulationHomeScore(match?.result?.score.home ?? 1);
-    setSimulationAwayScore(match?.result?.score.away ?? 0);
-    setSimulationScorers(match?.result?.scorers.join(", ") ?? "");
-    setSimulationCardsEdge(match?.result?.cardsEdge ?? CardsEdge.EQUAL);
-    setSimulationCardsRange(match?.result?.cardsRange ?? CardsRange.THREE_FOUR);
+  const simulationInputReady =
+    Boolean(officialResult) &&
+    simulationHomeScore !== "" &&
+    simulationAwayScore !== "" &&
+    simulationCardsEdge !== "" &&
+    simulationCardsRange !== "";
+
+  function resetSimulationFields() {
+    setSimulationHomeScore("");
+    setSimulationAwayScore("");
+    setSimulationScorers("");
+    setSimulationCardsEdge("");
+    setSimulationCardsRange("");
+  }
+
+  function getSimulationPayload() {
+    if (
+      !simulationMatchId ||
+      simulationHomeScore === "" ||
+      simulationAwayScore === "" ||
+      simulationCardsEdge === "" ||
+      simulationCardsRange === ""
+    ) {
+      return null;
+    }
+
+    return {
+      matchId: simulationMatchId,
+      score: {
+        home: simulationHomeScore,
+        away: simulationAwayScore
+      },
+      scorers: simulationScorers
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+      cardsEdge: simulationCardsEdge,
+      cardsRange: simulationCardsRange
+    };
   }
 
   function updateApproval(userId: string, approvalStatus: "APPROVED" | "REJECTED") {
@@ -275,13 +298,9 @@ export function AdminPanel({ data }: { data: AdminView }) {
             <select
               value={simulationMatchId}
               onChange={(event) => {
-                const nextMatch =
-                  data.simulationMatches.find((match) => match.id === event.target.value) ??
-                  null;
-
                 setSimulationMatchId(event.target.value);
                 setManualSimulationMatchId(event.target.value);
-                fillSimulationFieldsFromMatch(nextMatch);
+                resetSimulationFields();
                 setOfficialResult(null);
                 invalidateSimulation();
               }}
@@ -317,6 +336,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
                   setSimulationFeedback(null);
                   setSimulationPreview(null);
                   setOfficialResult(null);
+                  resetSimulationFields();
 
                   try {
                     const response = await fetch("/api/admin/fetch-official-result", {
@@ -457,8 +477,11 @@ export function AdminPanel({ data }: { data: AdminView }) {
                 min={0}
                 max={20}
                 value={simulationHomeScore}
+                placeholder="Gols time A"
                 onChange={(event) => {
-                  setSimulationHomeScore(Number(event.target.value));
+                  setSimulationHomeScore(
+                    event.target.value === "" ? "" : Number(event.target.value)
+                  );
                   invalidateSimulation();
                 }}
                 className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
@@ -468,8 +491,11 @@ export function AdminPanel({ data }: { data: AdminView }) {
                 min={0}
                 max={20}
                 value={simulationAwayScore}
+                placeholder="Gols time B"
                 onChange={(event) => {
-                  setSimulationAwayScore(Number(event.target.value));
+                  setSimulationAwayScore(
+                    event.target.value === "" ? "" : Number(event.target.value)
+                  );
                   invalidateSimulation();
                 }}
                 className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
@@ -495,6 +521,9 @@ export function AdminPanel({ data }: { data: AdminView }) {
                 }}
                 className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
               >
+                <option value="" disabled>
+                  Mais amarelos: carregue resultado
+                </option>
                 {cardsEdges.map((item) => (
                   <option key={item.value} value={item.value}>
                     Mais amarelos: {item.label}
@@ -510,6 +539,9 @@ export function AdminPanel({ data }: { data: AdminView }) {
                 }}
                 className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
               >
+                <option value="" disabled>
+                  Faixa de cartoes: carregue resultado
+                </option>
                 {cardsRanges.map((item) => (
                   <option key={item.value} value={item.value}>
                     Faixa de cartoes: {item.label}
@@ -520,28 +552,25 @@ export function AdminPanel({ data }: { data: AdminView }) {
 
             <button
               type="button"
-              disabled={pending || !simulationMatchId}
+              disabled={pending || !simulationMatchId || !simulationInputReady}
               onClick={() =>
                 startTransition(async () => {
+                  const simulationPayload = getSimulationPayload();
+
+                  if (!simulationPayload) {
+                    setSimulationFeedback(
+                      "Carregue o resultado oficial antes de simular a pontuacao."
+                    );
+                    return;
+                  }
+
                   setSimulationFeedback(null);
                   const response = await fetch("/api/admin/simulate-result", {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({
-                      matchId: simulationMatchId,
-                      score: {
-                        home: simulationHomeScore,
-                        away: simulationAwayScore
-                      },
-                      scorers: simulationScorers
-                        .split(",")
-                        .map((item) => item.trim())
-                        .filter(Boolean),
-                      cardsEdge: simulationCardsEdge,
-                      cardsRange: simulationCardsRange
-                    })
+                    body: JSON.stringify(simulationPayload)
                   });
 
                   const payload = await response.json();
@@ -584,25 +613,22 @@ export function AdminPanel({ data }: { data: AdminView }) {
                 }
 
                 startTransition(async () => {
+                  const simulationPayload = getSimulationPayload();
+
+                  if (!simulationPayload) {
+                    setSimulationFeedback(
+                      "Carregue e simule o resultado oficial antes de atualizar o ranking."
+                    );
+                    return;
+                  }
+
                   setSimulationFeedback(null);
                   const response = await fetch("/api/admin/finalize-result", {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({
-                      matchId: simulationMatchId,
-                      score: {
-                        home: simulationHomeScore,
-                        away: simulationAwayScore
-                      },
-                      scorers: simulationScorers
-                        .split(",")
-                        .map((item) => item.trim())
-                        .filter(Boolean),
-                      cardsEdge: simulationCardsEdge,
-                      cardsRange: simulationCardsRange
-                    })
+                    body: JSON.stringify(simulationPayload)
                   });
                   const payload = await response.json();
 
