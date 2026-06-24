@@ -31,8 +31,8 @@ export default async function LeaguePage() {
 
   return (
     <AppShell
-      title="Liga"
-      subtitle="Ranking, palpiteiros e disputa interna em uma visao so."
+      title="Ranking"
+      subtitle="Classificacao, palpiteiros e disputa interna em uma visao so."
       currentPath="/league"
       user={session.user}
       unreadNotifications={unreadNotifications}

@@ -124,6 +124,7 @@ export type LeaderboardRowView = {
   exactScores: number;
   correctWinners: number;
   correctScorers: number;
+  correctCards: number;
   rankPosition: number;
   movement: number;
   pointsToNext: number | null;

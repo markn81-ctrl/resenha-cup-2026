@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { buildPlayerStatus } from "@/lib/player-status";
 import { prisma } from "@/lib/prisma";
+import { getScopeForPhase } from "@/lib/ranking";
 import { getUserRivalry } from "@/lib/rivalries";
 import { getEffectiveMatchStatus } from "@/lib/locks";
 import type {
@@ -531,6 +532,55 @@ export async function getLeaderboardData(
       },
       orderBy: [{ rankPosition: "asc" }]
     });
+    const userIds = rows.map((row) => row.userId);
+    const correctCardsByUserId = new Map<string, number>();
+
+    if (userIds.length) {
+      const evaluatedPredictions = await prisma.prediction.findMany({
+        where: {
+          userId: { in: userIds },
+          match: {
+            result: { isNot: null }
+          }
+        },
+        select: {
+          userId: true,
+          cardsEdge: true,
+          cardsRange: true,
+          match: {
+            select: {
+              phase: true,
+              result: {
+                select: {
+                  cardsEdge: true,
+                  cardsRange: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      for (const prediction of evaluatedPredictions) {
+        const predictionScope =
+          scope === LeaderboardScope.OVERALL ? scope : getScopeForPhase(prediction.match.phase);
+
+        if (scope !== LeaderboardScope.OVERALL && predictionScope !== scope) {
+          continue;
+        }
+
+        if (
+          prediction.match.result &&
+          prediction.cardsEdge === prediction.match.result.cardsEdge &&
+          prediction.cardsRange === prediction.match.result.cardsRange
+        ) {
+          correctCardsByUserId.set(
+            prediction.userId,
+            (correctCardsByUserId.get(prediction.userId) ?? 0) + 1
+          );
+        }
+      }
+    }
 
     return rows.map((row, index) => ({
       userId: row.userId,
@@ -540,6 +590,7 @@ export async function getLeaderboardData(
       exactScores: row.exactScores,
       correctWinners: row.correctWinners,
       correctScorers: row.correctScorers,
+      correctCards: correctCardsByUserId.get(row.userId) ?? 0,
       rankPosition: row.rankPosition,
       movement: row.movement,
       pointsToNext: row.pointsToNext,

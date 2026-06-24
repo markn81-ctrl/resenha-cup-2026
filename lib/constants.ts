@@ -103,7 +103,7 @@ export const feedTypeLabels: Record<FeedPostType, string> = {
 export const playerNavigation = [
   { href: "/dashboard", label: "Inicio" },
   { href: "/matches", label: "Palpites" },
-  { href: "/league", label: "Liga" },
+  { href: "/league", label: "Ranking" },
   { href: "/resenha", label: "Resenha" }
 ];
 

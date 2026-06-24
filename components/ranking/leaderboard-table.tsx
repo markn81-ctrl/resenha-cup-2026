@@ -75,23 +75,29 @@ export function LeaderboardTable({
               ) : null}
             </div>
 
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+            <div className="mt-4 grid grid-cols-4 gap-2 text-center">
               <div className="rounded-2xl bg-slate-950/35 p-3">
                 <p className="text-lg font-bold">{row.exactScores}</p>
                 <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                  exatos
+                  exat.
                 </p>
               </div>
               <div className="rounded-2xl bg-slate-950/35 p-3">
                 <p className="text-lg font-bold">{row.correctWinners}</p>
                 <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                  venced.
+                  venc.
                 </p>
               </div>
               <div className="rounded-2xl bg-slate-950/35 p-3">
                 <p className="text-lg font-bold">{row.correctScorers}</p>
                 <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
                   gols
+                </p>
+              </div>
+              <div className="rounded-2xl bg-slate-950/35 p-3">
+                <p className="text-lg font-bold">{row.correctCards}</p>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
+                  cart.
                 </p>
               </div>
             </div>
@@ -109,12 +115,13 @@ export function LeaderboardTable({
               <th className="px-5 py-4">Placar exato</th>
               <th className="px-5 py-4">Vencedores</th>
               <th className="px-5 py-4">Artilheiros</th>
+              <th className="px-5 py-4">Cartões</th>
             </tr>
           </thead>
           <tbody>
             {!rows.length ? (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-400">
+                <td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-400">
                   Ranking limpo por enquanto. Quando os primeiros palpites forem pontuados, a briga pela ponta aparece aqui.
                 </td>
               </tr>
@@ -174,6 +181,7 @@ export function LeaderboardTable({
                 <td className="px-5 py-4">{row.exactScores}</td>
                 <td className="px-5 py-4">{row.correctWinners}</td>
                 <td className="px-5 py-4">{row.correctScorers}</td>
+                <td className="px-5 py-4">{row.correctCards}</td>
               </tr>
             ))}
           </tbody>
