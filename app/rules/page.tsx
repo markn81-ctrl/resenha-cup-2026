@@ -17,8 +17,8 @@ const baseRules = [
 
 const bonusRules = [
   { label: "Vencedor + placar exato no mesmo jogo", points: "+2" },
-  { label: "Sequência de 3 acertos de vencedor", points: "+2" },
-  { label: "Sequência de 5 acertos de vencedor", points: "+5" }
+  { label: "Sequencia de 3 acertos de vencedor", points: "+2" },
+  { label: "Sequencia de 5 acertos de vencedor e reset do ciclo", points: "+5" }
 ];
 
 const multipliers = [
@@ -116,7 +116,7 @@ export default async function RulesPage() {
               ))}
             </div>
             <p className="mt-4 text-sm leading-6 text-slate-400">
-              Sequência considera acertos de vencedor/empate. Quanto mais embala, mais perigoso fica para os rivais.
+              Sequencia considera acertos de vencedor/empate. A partir do Jogo 48, o ciclo paga +2 no terceiro acerto, +5 no quinto acerto e zera para recomecar uma nova sequencia.
             </p>
           </Panel>
         </div>

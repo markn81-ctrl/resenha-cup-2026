@@ -9,8 +9,10 @@ import { prisma } from "@/lib/prisma";
 import { buildLeaderboardSummaries, calculateMovement } from "@/lib/ranking";
 import {
   calculatePredictionScore,
+  calculateStreakBonus,
   countScorerHits,
   deriveOutcome,
+  getStreakBonusRuleForMatch,
   normalizePlayerName
 } from "@/lib/scoring";
 import { syncRivalries } from "@/lib/rivalries";
@@ -114,6 +116,7 @@ async function rebuildRankings(tx: Prisma.TransactionClient) {
   ]);
 
   const streaks = new Map<string, number>();
+  let cycleRuleStarted = false;
   const evaluated: EvaluatedPrediction[] = [];
   const predictionUpdates: PredictionUpdate[] = [];
   const evaluatedAt = new Date();
@@ -122,6 +125,13 @@ async function rebuildRankings(tx: Prisma.TransactionClient) {
     if (!match.result) {
       continue;
     }
+
+    if (getStreakBonusRuleForMatch(match.number) === "CYCLE_RESET" && !cycleRuleStarted) {
+      streaks.clear();
+      cycleRuleStarted = true;
+    }
+
+    const streakRule = getStreakBonusRuleForMatch(match.number);
 
     for (const prediction of match.predictions) {
       const streakBefore = streaks.get(prediction.userId) ?? 0;
@@ -135,9 +145,14 @@ async function rebuildRankings(tx: Prisma.TransactionClient) {
         },
         result: match.result,
         phase: match.phase,
-        streakBefore
+        streakBefore,
+        streakRule
       });
-      const currentStreak = breakdown.winnerHit ? streakBefore + 1 : 0;
+      const currentStreak = calculateStreakBonus({
+        winnerHit: breakdown.winnerHit,
+        streakBefore,
+        rule: streakRule
+      }).streakAfter;
       const scorerHits = Math.min(
         countScorerHits(prediction.scorers, match.result.scorers),
         2

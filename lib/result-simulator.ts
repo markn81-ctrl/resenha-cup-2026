@@ -1,5 +1,11 @@
 import { LeaderboardScope, MatchStatus, type CardsEdge, type CardsRange } from "@prisma/client";
-import { calculatePredictionScore, countScorerHits, deriveOutcome } from "@/lib/scoring";
+import {
+  calculatePredictionScore,
+  calculateStreakBonus,
+  countScorerHits,
+  deriveOutcome,
+  getStreakBonusRuleForMatch
+} from "@/lib/scoring";
 import { prisma } from "@/lib/prisma";
 import type { AdminSimulationView } from "@/types/app";
 
@@ -17,6 +23,7 @@ type SimulationInput = {
 async function getStreakMap(args: {
   userIds: string[];
   startsAt: Date;
+  matchNumber: number;
 }) {
   const streaks = new Map<string, number>();
 
@@ -24,11 +31,19 @@ async function getStreakMap(args: {
     return streaks;
   }
 
+  const targetRule = getStreakBonusRuleForMatch(args.matchNumber);
   const previousMatches = await prisma.match.findMany({
     where: {
       status: MatchStatus.FINISHED,
       startsAt: { lt: args.startsAt },
       result: { isNot: null },
+      ...(targetRule === "CYCLE_RESET"
+        ? {
+            number: {
+              gte: 48
+            }
+          }
+        : {}),
       predictions: {
         some: {
           userId: {
@@ -51,9 +66,7 @@ async function getStreakMap(args: {
         }
       }
     },
-    orderBy: {
-      startsAt: "asc"
-    }
+    orderBy: [{ startsAt: "asc" }, { number: "asc" }]
   });
 
   for (const match of previousMatches) {
@@ -65,7 +78,14 @@ async function getStreakMap(args: {
 
     for (const prediction of match.predictions) {
       const current = streaks.get(prediction.userId) ?? 0;
-      streaks.set(prediction.userId, prediction.outcome === outcome ? current + 1 : 0);
+      streaks.set(
+        prediction.userId,
+        calculateStreakBonus({
+          winnerHit: prediction.outcome === outcome,
+          streakBefore: current,
+          rule: getStreakBonusRuleForMatch(match.number)
+        }).streakAfter
+      );
     }
   }
 
@@ -109,8 +129,10 @@ export async function simulateMatchResult(
   const userIds = match.predictions.map((prediction) => prediction.userId);
   const streakMap = await getStreakMap({
     userIds,
-    startsAt: match.startsAt
+    startsAt: match.startsAt,
+    matchNumber: match.number
   });
+  const streakRule = getStreakBonusRuleForMatch(match.number);
 
   const overallRows = await prisma.leaderboard.findMany({
     where: { scope: LeaderboardScope.OVERALL },
@@ -146,7 +168,8 @@ export async function simulateMatchResult(
       },
       result: simulatedResult,
       phase: match.phase,
-      streakBefore: streakMap.get(prediction.userId) ?? 0
+      streakBefore: streakMap.get(prediction.userId) ?? 0,
+      streakRule
     });
 
     const scorerHits = Math.min(

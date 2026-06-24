@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { CardsEdge, CardsRange, Phase, PredictionOutcome } from "@prisma/client";
 import {
   calculatePredictionScore,
+  calculateStreakBonus,
   countScorerHits,
   deriveCardsEdge,
   deriveCardsRange,
@@ -182,6 +183,42 @@ runCase("applies the 5-hit streak bonus and knockout multiplier together", () =>
   assert.equal(breakdown.streakBonus, 5);
   assert.equal(breakdown.multiplier, 2);
   assert.equal(breakdown.total, 16);
+});
+
+runCase("cycles the new streak rule after the 5-hit bonus", () => {
+  assert.deepEqual(
+    calculateStreakBonus({
+      winnerHit: true,
+      streakBefore: 2,
+      rule: "CYCLE_RESET"
+    }),
+    {
+      streakAfter: 3,
+      bonus: 2
+    }
+  );
+  assert.deepEqual(
+    calculateStreakBonus({
+      winnerHit: true,
+      streakBefore: 4,
+      rule: "CYCLE_RESET"
+    }),
+    {
+      streakAfter: 0,
+      bonus: 5
+    }
+  );
+  assert.deepEqual(
+    calculateStreakBonus({
+      winnerHit: false,
+      streakBefore: 4,
+      rule: "CYCLE_RESET"
+    }),
+    {
+      streakAfter: 0,
+      bonus: 0
+    }
+  );
 });
 
 runCase("returns zero points when the predicted winner is wrong", () => {

@@ -22,6 +22,52 @@ export type ScoreBreakdown = {
   winnerHit: boolean;
 };
 
+export type StreakBonusRule = "LEGACY_CUMULATIVE" | "CYCLE_RESET";
+
+export const STREAK_CYCLE_EFFECTIVE_MATCH_NUMBER = 48;
+
+export function getStreakBonusRuleForMatch(matchNumber: number): StreakBonusRule {
+  return matchNumber >= STREAK_CYCLE_EFFECTIVE_MATCH_NUMBER
+    ? "CYCLE_RESET"
+    : "LEGACY_CUMULATIVE";
+}
+
+export function calculateStreakBonus(args: {
+  winnerHit: boolean;
+  streakBefore?: number;
+  rule?: StreakBonusRule;
+}) {
+  const streakBefore = args.streakBefore ?? 0;
+
+  if (!args.winnerHit) {
+    return {
+      streakAfter: 0,
+      bonus: 0
+    };
+  }
+
+  const streak = streakBefore + 1;
+
+  if (args.rule === "CYCLE_RESET") {
+    if (streak === 5) {
+      return {
+        streakAfter: 0,
+        bonus: 5
+      };
+    }
+
+    return {
+      streakAfter: streak,
+      bonus: streak === 3 ? 2 : 0
+    };
+  }
+
+  return {
+    streakAfter: streak,
+    bonus: streak >= 5 ? 5 : streak >= 3 ? 2 : 0
+  };
+}
+
 export function normalizePlayerName(name: string) {
   return name
     .normalize("NFD")
@@ -84,6 +130,7 @@ export function calculatePredictionScore(args: {
   result: ScoreableResult;
   phase: Phase;
   streakBefore?: number;
+  streakRule?: StreakBonusRule;
 }): ScoreBreakdown {
   const winnerHit = args.prediction.outcome === args.result.outcome;
   const exactHit =
@@ -100,8 +147,11 @@ export function calculatePredictionScore(args: {
   const scorers = Math.min(scorerHits, 2) * 3;
   const cards = (cardsEdgeHit ? 2 : 0) + (cardsRangeHit ? 2 : 0) + (cardsEdgeHit && cardsRangeHit ? 2 : 0);
   const comboBonus = winnerHit && exactHit ? 2 : 0;
-  const streak = winnerHit ? (args.streakBefore ?? 0) + 1 : 0;
-  const streakBonus = streak >= 5 ? 5 : streak >= 3 ? 2 : 0;
+  const streakBonus = calculateStreakBonus({
+    winnerHit,
+    streakBefore: args.streakBefore,
+    rule: args.streakRule
+  }).bonus;
   const rawTotal = base + exactScore + scorers + cards + comboBonus + streakBonus;
   const multiplier = phaseMultipliers[args.phase];
   const total = Number((rawTotal * multiplier).toFixed(1));
