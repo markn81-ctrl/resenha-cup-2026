@@ -42,6 +42,7 @@ export default async function LeaguePage() {
           overall={overall}
           knockout={knockout}
           highlightUserId={session.user.id}
+          defaultRanking="knockout"
         />
 
         <Panel>

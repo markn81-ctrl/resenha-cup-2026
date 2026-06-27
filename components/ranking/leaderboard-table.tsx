@@ -7,17 +7,19 @@ import { formatPoints } from "@/lib/utils";
 
 export function LeaderboardTable({
   rows,
-  highlightUserId
+  highlightUserId,
+  emptyMessage = "Ranking limpo por enquanto. Quando os primeiros palpites forem pontuados, a briga pela ponta aparece aqui."
 }: {
   rows: LeaderboardRowView[];
   highlightUserId?: string | null;
+  emptyMessage?: string;
 }) {
   return (
     <Panel className="overflow-hidden p-0">
       <div className="space-y-3 p-3 md:hidden">
         {!rows.length ? (
           <div className="rounded-2xl border border-white/8 bg-white/5 p-5 text-center text-sm text-slate-400">
-            Ranking limpo por enquanto. Quando os primeiros palpites forem pontuados, a briga pela ponta aparece aqui.
+            {emptyMessage}
           </div>
         ) : null}
         {rows.map((row) => (
@@ -122,7 +124,7 @@ export function LeaderboardTable({
             {!rows.length ? (
               <tr>
                 <td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-400">
-                  Ranking limpo por enquanto. Quando os primeiros palpites forem pontuados, a briga pela ponta aparece aqui.
+                  {emptyMessage}
                 </td>
               </tr>
             ) : null}

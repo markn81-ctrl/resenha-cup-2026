@@ -12,6 +12,7 @@ type LeaderboardSwitcherProps = {
   overall: LeaderboardRowView[];
   knockout: LeaderboardRowView[];
   highlightUserId?: string | null;
+  defaultRanking?: RankingKey;
 };
 
 const rankingMeta: Record<
@@ -21,28 +22,34 @@ const rankingMeta: Record<
     eyebrow: string;
     title: string;
     description: string;
+    emptyMessage: string;
   }
 > = {
   overall: {
     label: "Ranking geral",
     eyebrow: "Ranking",
     title: "Classificacao geral",
-    description: "Soma toda a campanha: fase de grupos e mata-mata."
+    description: "Soma toda a campanha: fase de grupos e mata-mata.",
+    emptyMessage:
+      "Ranking limpo por enquanto. Quando os primeiros palpites forem pontuados, a briga pela ponta aparece aqui."
   },
   knockout: {
     label: "Ranking Mata-Mata",
     eyebrow: "Disputa do pote",
     title: "Ranking Mata-Mata",
-    description: "Recorte separado dos jogos eliminatorios, a disputa que vai valer o pote."
+    description: "Recorte separado dos jogos eliminatorios, a disputa que vai valer o pote.",
+    emptyMessage:
+      "A disputa do pote comeca assim que o primeiro jogo do mata-mata for pontuado."
   }
 };
 
 export function LeaderboardSwitcher({
   overall,
   knockout,
-  highlightUserId
+  highlightUserId,
+  defaultRanking = "overall"
 }: LeaderboardSwitcherProps) {
-  const [activeRanking, setActiveRanking] = useState<RankingKey>("overall");
+  const [activeRanking, setActiveRanking] = useState<RankingKey>(defaultRanking);
   const activeRows = activeRanking === "overall" ? overall : knockout;
   const activeMeta = rankingMeta[activeRanking];
 
@@ -82,7 +89,11 @@ export function LeaderboardSwitcher({
         </div>
       </Panel>
 
-      <LeaderboardTable rows={activeRows} highlightUserId={highlightUserId} />
+      <LeaderboardTable
+        rows={activeRows}
+        highlightUserId={highlightUserId}
+        emptyMessage={activeMeta.emptyMessage}
+      />
     </section>
   );
 }
