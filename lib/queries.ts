@@ -125,7 +125,6 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
       user,
       standings,
       topTen,
-      overallLeaderboardCount,
       knockoutLeaderboardCount,
       matches,
       feed,
@@ -133,7 +132,7 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
     ] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId } }),
       prisma.leaderboard.findFirst({
-        where: { userId, scope: LeaderboardScope.OVERALL },
+        where: { userId, scope: LeaderboardScope.KNOCKOUT },
         orderBy: { snapshotAt: "desc" }
       }),
       prisma.leaderboard.findMany({
@@ -141,9 +140,6 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
         include: { user: true },
         orderBy: [{ rankPosition: "asc" }],
         take: 10
-      }),
-      prisma.leaderboard.count({
-        where: { scope: LeaderboardScope.OVERALL }
       }),
       prisma.leaderboard.count({
         where: { scope: LeaderboardScope.KNOCKOUT }
@@ -185,7 +181,7 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
         orderBy: { createdAt: "desc" },
         take: 2
       }),
-      getUserRivalry(userId, LeaderboardScope.OVERALL)
+      getUserRivalry(userId, LeaderboardScope.KNOCKOUT)
     ]);
 
     if (!user) {
@@ -196,7 +192,7 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
       ? await prisma.leaderboard.findFirst({
           where: {
             userId: rivalry.rivalUserId,
-            scope: LeaderboardScope.OVERALL
+            scope: LeaderboardScope.KNOCKOUT
           },
           orderBy: { snapshotAt: "desc" }
         })
@@ -217,9 +213,9 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
         pointsToNext: standings?.pointsToNext ?? null,
         tier: standings
           ? buildPlayerStatus({
-              scope: LeaderboardScope.OVERALL,
+              scope: LeaderboardScope.KNOCKOUT,
               rankPosition: standings.rankPosition,
-              totalPlayers: Math.max(overallLeaderboardCount, standings.rankPosition)
+              totalPlayers: Math.max(knockoutLeaderboardCount, standings.rankPosition)
             }).tier
           : PlayerTier.AVERAGE
       },

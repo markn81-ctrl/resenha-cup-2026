@@ -96,7 +96,7 @@ export function AppShell({
             <div className="grid shrink-0 grid-cols-2 gap-2 sm:min-w-[290px]">
               <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
-                  Posicao atual
+                  Posicao Mata-Mata
                 </p>
                 <div className="mt-1 flex items-center gap-2">
                   <p className="font-[family-name:var(--font-heading)] text-3xl font-bold">
@@ -120,7 +120,7 @@ export function AppShell({
               </div>
               <div className="rounded-[18px] border border-brand-300/20 bg-brand-400/10 px-4 py-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-brand-100">
-                  Pontuacao
+                  Pontuacao Mata-Mata
                 </p>
                 <p className="mt-1 font-[family-name:var(--font-heading)] text-3xl font-bold">
                   {formatPoints(standing.totalPoints)}
