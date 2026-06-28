@@ -653,6 +653,7 @@ export async function getFeedData(userId?: string | null): Promise<FeedPostView[
       type: post.type,
       title: post.title,
       content: post.content,
+      metadata: post.metadata,
       createdAt: post.createdAt,
       likesCount: post._count.likes,
       commentsCount: post._count.comments,

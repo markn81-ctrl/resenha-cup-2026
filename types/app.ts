@@ -148,6 +148,7 @@ export type FeedPostView = {
   } | null;
   title?: string | null;
   content: string;
+  metadata?: unknown;
   createdAt: Date;
   likesCount: number;
   commentsCount: number;

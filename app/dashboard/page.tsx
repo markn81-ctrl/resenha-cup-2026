@@ -29,7 +29,7 @@ export default async function DashboardPage() {
   return (
     <AppShell
       title="Inicio"
-      subtitle="O que importa agora: ranking, proximo palpite, rivalidade e resenha em movimento."
+      subtitle="O que vale agora: Ranking Mata-Mata, proximo palpite, rivalidade e resenha em movimento."
       currentPath="/dashboard"
       user={session?.user}
       unreadNotifications={unreadNotifications}

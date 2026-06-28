@@ -28,6 +28,9 @@ export function TopTenPreview({
           <h2 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-bold">
             Corrida pela ponta do Mata-Mata
           </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            A briga que vale o pote aparece aqui: quem disparou, quem encostou e quem precisa reagir rapido.
+          </p>
         </div>
         <SmartNavLink
           href="/league"

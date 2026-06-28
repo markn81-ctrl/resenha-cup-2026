@@ -119,9 +119,14 @@ export function AppShell({
                 </div>
               </div>
               <div className="rounded-[18px] border border-brand-300/20 bg-brand-400/10 px-4 py-3">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-brand-100">
-                  Pontuacao Mata-Mata
-                </p>
+                <div className="flex flex-col gap-1">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-brand-100">
+                    Pontuacao Mata-Mata
+                  </p>
+                  <span className="w-fit rounded-full bg-accent-300/15 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-accent-100">
+                    Vale o pote
+                  </span>
+                </div>
                 <p className="mt-1 font-[family-name:var(--font-heading)] text-3xl font-bold">
                   {formatPoints(standing.totalPoints)}
                 </p>

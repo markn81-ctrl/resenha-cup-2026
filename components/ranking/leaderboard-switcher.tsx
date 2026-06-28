@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { LeaderboardRowView } from "@/types/app";
 import { LeaderboardTable } from "@/components/ranking/leaderboard-table";
 import { Panel } from "@/components/ui/panel";
-import { cn } from "@/lib/utils";
+import { cn, formatPoints } from "@/lib/utils";
 
 type RankingKey = "overall" | "knockout";
 
@@ -27,17 +27,17 @@ const rankingMeta: Record<
 > = {
   overall: {
     label: "Ranking geral",
-    eyebrow: "Ranking",
-    title: "Classificacao geral",
-    description: "Soma toda a campanha: fase de grupos e mata-mata.",
+    eyebrow: "Historico da campanha",
+    title: "Ranking geral",
+    description: "Consulta da corrida inicial e da campanha completa. A disputa que vale o pote agora esta no Mata-Mata.",
     emptyMessage:
       "Ranking limpo por enquanto. Quando os primeiros palpites forem pontuados, a briga pela ponta aparece aqui."
   },
   knockout: {
     label: "Ranking Mata-Mata",
-    eyebrow: "Disputa do pote",
+    eyebrow: "Disputa que vale agora",
     title: "Ranking Mata-Mata",
-    description: "Recorte separado dos jogos eliminatorios, a disputa que vai valer o pote.",
+    description: "Recorte dos jogos eliminatorios: quem largou bem, quem encostou e quem precisa reagir pelo pote.",
     emptyMessage:
       "A disputa do pote comeca assim que o primeiro jogo do mata-mata for pontuado."
   }
@@ -52,6 +52,9 @@ export function LeaderboardSwitcher({
   const [activeRanking, setActiveRanking] = useState<RankingKey>(defaultRanking);
   const activeRows = activeRanking === "overall" ? overall : knockout;
   const activeMeta = rankingMeta[activeRanking];
+  const leader = activeRows[0];
+  const second = activeRows[1];
+  const leaderGap = leader && second ? leader.totalPoints - second.totalPoints : null;
 
   return (
     <section className="space-y-4">
@@ -67,6 +70,21 @@ export function LeaderboardSwitcher({
             <p className="mt-2 text-sm leading-6 text-slate-300">
               {activeMeta.description}
             </p>
+            {leader ? (
+              <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                <span className="rounded-full bg-accent-300/15 px-3 py-1.5 text-accent-100">
+                  Lider: {leader.name}
+                </span>
+                <span className="rounded-full bg-white/5 px-3 py-1.5 text-slate-300">
+                  {formatPoints(leader.totalPoints)} pts
+                </span>
+                {leaderGap !== null ? (
+                  <span className="rounded-full bg-brand-400/10 px-3 py-1.5 text-brand-100">
+                    {leaderGap === 0 ? "Topo empatado" : `${formatPoints(leaderGap)} pts para o 2o`}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-slate-950/35 p-1">

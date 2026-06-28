@@ -10,6 +10,63 @@ import type { FeedPostView } from "@/types/app";
 import { Panel } from "@/components/ui/panel";
 import { LoadingButton } from "@/components/ui/loading-button";
 
+type FeedPostMetadata = {
+  source?: string;
+  matchNumber?: number;
+  newScope?: string;
+  scope?: string;
+  commentary?: {
+    scope?: string;
+    focus?: string;
+  };
+};
+
+function readMetadata(metadata: unknown): FeedPostMetadata {
+  return metadata && typeof metadata === "object" ? (metadata as FeedPostMetadata) : {};
+}
+
+function getScopeLabel(scope?: string | null) {
+  if (scope === "KNOCKOUT") {
+    return "Ranking Mata-Mata";
+  }
+
+  if (scope === "OVERALL") {
+    return "Ranking Geral";
+  }
+
+  if (scope === "GROUP_STAGE") {
+    return "Fase de grupos";
+  }
+
+  return null;
+}
+
+function getAiContextTags(post: FeedPostView) {
+  if (post.type !== "AI_COMMENTARY") {
+    return [];
+  }
+
+  const metadata = readMetadata(post.metadata);
+  const scopeLabel = getScopeLabel(
+    metadata.newScope ?? metadata.commentary?.scope ?? metadata.scope
+  );
+  const tags = ["IAestagiaria"];
+
+  if (scopeLabel) {
+    tags.push(scopeLabel);
+  }
+
+  if (metadata.matchNumber) {
+    tags.push(`Jogo ${metadata.matchNumber}`);
+  }
+
+  if (metadata.source?.includes("republished") || metadata.source?.includes("replaced")) {
+    tags.push("correcao transparente");
+  }
+
+  return tags;
+}
+
 export function FeedPostCard({ post }: { post: FeedPostView }) {
   const router = useRouter();
   const commentsRef = useRef<HTMLDivElement | null>(null);
@@ -18,6 +75,7 @@ export function FeedPostCard({ post }: { post: FeedPostView }) {
   const [commentsOpen, setCommentsOpen] = useState(Boolean(post.comments?.length));
   const [feedback, setFeedback] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const aiContextTags = getAiContextTags(post);
 
   function openComments() {
     setCommentsOpen(true);
@@ -44,10 +102,22 @@ export function FeedPostCard({ post }: { post: FeedPostView }) {
               {post.author.name} - @{post.author.username}
             </p>
           ) : null}
+          {aiContextTags.length ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {aiContextTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full border border-brand-300/20 bg-brand-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-100"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
 
-      <p className="mt-4 text-base leading-7 text-slate-100">{post.content}</p>
+      <p className="mt-4 whitespace-pre-line text-base leading-7 text-slate-100">{post.content}</p>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <button
