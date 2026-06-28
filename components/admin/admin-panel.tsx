@@ -589,6 +589,11 @@ export function AdminPanel({ data }: { data: AdminView }) {
                       Fonte: {officialResult.source.name} · partida{" "}
                       {officialResult.source.matchId} · {officialResult.match.matchTime ?? "tempo final"}
                     </p>
+                    <p className="mt-2 text-xs uppercase tracking-[0.16em] text-sky-100">
+                      {officialResult.scoringScope === "REGULATION_TIME"
+                        ? "Pontuacao: somente tempo regulamentar + acrescimos"
+                        : "Pontuacao: resultado oficial da partida"}
+                    </p>
                   </div>
                   <span
                     className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
@@ -606,18 +611,50 @@ export function AdminPanel({ data }: { data: AdminView }) {
                     <p className="font-semibold">{officialResult.match.homeTeam}</p>
                     <p className="text-xs text-slate-400">{officialResult.match.homeCode}</p>
                   </div>
-                  <p className="text-3xl font-bold">
-                    {officialResult.score.home} x {officialResult.score.away}
-                  </p>
+                  <div className="text-center">
+                    <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Para pontuacao
+                    </p>
+                    <p className="text-3xl font-bold">
+                      {officialResult.score.home} x {officialResult.score.away}
+                    </p>
+                  </div>
                   <div className="text-right">
                     <p className="font-semibold">{officialResult.match.awayTeam}</p>
                     <p className="text-xs text-slate-400">{officialResult.match.awayCode}</p>
                   </div>
                 </div>
 
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {officialResult.stages.map((stage) => (
+                    <div
+                      key={`${stage.label}-${stage.home}-${stage.away}`}
+                      className={
+                        stage.usedForScoring
+                          ? "rounded-2xl border border-emerald-300/25 bg-emerald-400/10 p-4"
+                          : "rounded-2xl border border-white/8 bg-slate-950/35 p-4"
+                      }
+                    >
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                        {stage.label}
+                      </p>
+                      <p className="mt-2 text-2xl font-bold">
+                        {stage.home} x {stage.away}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {stage.usedForScoring
+                          ? "Usado para simular e pontuar"
+                          : "Informativo; nao entra no bolao"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
                 <div className="mt-3 grid gap-3 lg:grid-cols-2">
                   <div className="rounded-2xl bg-slate-950/35 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Gols</p>
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                      Gols para pontuacao
+                    </p>
                     <div className="mt-2 space-y-1 text-sm text-slate-200">
                       {officialResult.goals.map((goal, index) => (
                         <p key={`${goal.player}-${goal.minute}-${index}`}>
@@ -630,7 +667,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
 
                   <div className="rounded-2xl bg-slate-950/35 p-4">
                     <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                      Cartoes da sumula
+                      Cartoes para pontuacao
                     </p>
                     <p className="mt-2 text-sm font-semibold text-slate-100">
                       Amarelos: {officialResult.match.homeCode}{" "}

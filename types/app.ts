@@ -323,6 +323,17 @@ export type AdminOfficialResultView = {
     home: number;
     away: number;
   };
+  finalScore: {
+    home: number;
+    away: number;
+  };
+  scoringScope: "FULL_MATCH" | "REGULATION_TIME";
+  stages: Array<{
+    label: string;
+    home: number;
+    away: number;
+    usedForScoring: boolean;
+  }>;
   scorers: string[];
   goals: Array<{
     player: string;

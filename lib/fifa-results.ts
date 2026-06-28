@@ -1,4 +1,4 @@
-import { CardsEdge, CardsRange } from "@prisma/client";
+import { CardsEdge, CardsRange, Phase } from "@prisma/client";
 import { addHours, subHours } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { deriveCardsEdge, deriveCardsRange } from "@/lib/scoring";
@@ -91,6 +91,17 @@ export type OfficialResultPreview = {
     home: number;
     away: number;
   };
+  finalScore: {
+    home: number;
+    away: number;
+  };
+  scoringScope: "FULL_MATCH" | "REGULATION_TIME";
+  stages: Array<{
+    label: string;
+    home: number;
+    away: number;
+    usedForScoring: boolean;
+  }>;
   scorers: string[];
   goals: Array<{
     player: string;
@@ -138,6 +149,39 @@ function bookingColor(card?: number | null): "YELLOW" | "RED" | "OTHER" {
   return "OTHER";
 }
 
+function regulationMinute(value?: string | null) {
+  const normalized = value?.trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  const match = normalized.match(/(\d+)/);
+
+  if (!match) {
+    return null;
+  }
+
+  return Number(match[1]);
+}
+
+function isRegulationTimeEvent(value?: string | null) {
+  const minute = regulationMinute(value);
+
+  return minute === null || minute <= 90;
+}
+
+function scoreFromGoals(args: {
+  goals: Array<{ teamCode: string }>;
+  homeCode: string;
+  awayCode: string;
+}) {
+  return {
+    home: args.goals.filter((goal) => goal.teamCode === args.homeCode).length,
+    away: args.goals.filter((goal) => goal.teamCode === args.awayCode).length
+  };
+}
+
 export function parseFifaMatchDetails(
   details: FifaMatchDetails,
   expected: {
@@ -145,6 +189,7 @@ export function parseFifaMatchDetails(
     startsAt: Date;
     homeCode?: string | null;
     awayCode?: string | null;
+    phase?: Phase;
   }
 ): OfficialResultPreview {
   if (
@@ -194,18 +239,26 @@ export function parseFifaMatchDetails(
     [away.IdTeam ?? "", awayCode]
   ]);
 
-  const goals = [...(home.Goals ?? []), ...(away.Goals ?? [])].map((goal) => ({
+  const allGoals = [...(home.Goals ?? []), ...(away.Goals ?? [])].map((goal) => ({
     player: playerNames.get(goal.IdPlayer ?? "") ?? "Jogador nao identificado",
     teamCode: teamCodes.get(goal.IdTeam ?? "") ?? "N/A",
     minute: goal.Minute,
     typeCode: goal.Type
   }));
-  const cardEvents = [...(home.Bookings ?? []), ...(away.Bookings ?? [])].map((booking) => ({
+  const allCardEvents = [...(home.Bookings ?? []), ...(away.Bookings ?? [])].map((booking) => ({
     player: playerNames.get(booking.IdPlayer ?? "") ?? "Jogador nao identificado",
     teamCode: teamCodes.get(booking.IdTeam ?? "") ?? "N/A",
     minute: booking.Minute,
     color: bookingColor(booking.Card)
   }));
+  const usesRegulationTime =
+    expected.phase !== undefined && expected.phase !== Phase.GROUP_STAGE;
+  const goals = usesRegulationTime
+    ? allGoals.filter((goal) => isRegulationTimeEvent(goal.minute))
+    : allGoals;
+  const cardEvents = usesRegulationTime
+    ? allCardEvents.filter((booking) => isRegulationTimeEvent(booking.minute))
+    : allCardEvents;
   const homeYellow = cardEvents.filter(
     (booking) => booking.teamCode === homeCode && booking.color === "YELLOW"
   ).length;
@@ -215,18 +268,45 @@ export function parseFifaMatchDetails(
   const totalYellow = homeYellow + awayYellow;
   const warnings: string[] = [];
   const finished = details.Period === 10;
+  const finalScore = {
+    home: home.Score as number,
+    away: away.Score as number
+  };
+  const score = usesRegulationTime
+    ? scoreFromGoals({ goals, homeCode, awayCode })
+    : finalScore;
 
   if (!finished) {
     warnings.push("A FIFA ainda nao marcou a partida como encerrada.");
   }
 
-  if (goals.length !== (home.Score as number) + (away.Score as number)) {
+  if (allGoals.length !== finalScore.home + finalScore.away) {
     warnings.push(
       "A quantidade de eventos de gol difere do placar. Confira gols contra ou eventos pendentes."
     );
   }
 
-  if (cardEvents.some((booking) => booking.color === "OTHER")) {
+  if (usesRegulationTime && allGoals.some((goal) => !isRegulationTimeEvent(goal.minute))) {
+    warnings.push(
+      "Houve gol fora do tempo regulamentar. Para o bolao, o placar carregado considera apenas 90 minutos mais acrescimos."
+    );
+  }
+
+  if (usesRegulationTime && allCardEvents.some((card) => !isRegulationTimeEvent(card.minute))) {
+    warnings.push(
+      "Houve cartao fora do tempo regulamentar. Para o bolao, esses cartoes nao entram na pontuacao."
+    );
+  }
+
+  if (allGoals.some((goal) => regulationMinute(goal.minute) === null)) {
+    warnings.push("Existe evento de gol sem minuto claro. Confira a sumula antes de aprovar.");
+  }
+
+  if (allCardEvents.some((card) => regulationMinute(card.minute) === null)) {
+    warnings.push("Existe evento de cartao sem minuto claro. Confira a sumula antes de aprovar.");
+  }
+
+  if (allCardEvents.some((booking) => booking.color === "OTHER")) {
     warnings.push("Existem eventos de cartao com tipo nao reconhecido. Confira a sumula.");
   }
 
@@ -248,9 +328,29 @@ export function parseFifaMatchDetails(
       awayCode
     },
     score: {
-      home: home.Score as number,
-      away: away.Score as number
+      home: score.home,
+      away: score.away
     },
+    finalScore,
+    scoringScope: usesRegulationTime ? "REGULATION_TIME" : "FULL_MATCH",
+    stages: [
+      {
+        label: usesRegulationTime ? "Tempo regulamentar + acrescimos" : "Resultado oficial",
+        home: score.home,
+        away: score.away,
+        usedForScoring: true
+      },
+      ...(usesRegulationTime
+        ? [
+            {
+              label: "Resultado final FIFA",
+              home: finalScore.home,
+              away: finalScore.away,
+              usedForScoring: false
+            }
+          ]
+        : [])
+    ],
     scorers: goals.map((goal) => goal.player),
     goals,
     cards: {
@@ -334,7 +434,8 @@ export async function fetchOfficialResultPreview(matchId: string) {
     number: match.number,
     startsAt: match.startsAt,
     homeCode: match.homeTeam?.code,
-    awayCode: match.awayTeam?.code
+    awayCode: match.awayTeam?.code,
+    phase: match.phase
   });
 
   if (!preview.match.finished) {
