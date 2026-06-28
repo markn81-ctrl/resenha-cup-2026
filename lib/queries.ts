@@ -121,20 +121,32 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
   }
 
   try {
-    const [user, standings, topTen, leaderboardCount, matches, feed, rivalry] = await Promise.all([
+    const [
+      user,
+      standings,
+      topTen,
+      overallLeaderboardCount,
+      knockoutLeaderboardCount,
+      matches,
+      feed,
+      rivalry
+    ] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId } }),
       prisma.leaderboard.findFirst({
         where: { userId, scope: LeaderboardScope.OVERALL },
         orderBy: { snapshotAt: "desc" }
       }),
       prisma.leaderboard.findMany({
-        where: { scope: LeaderboardScope.OVERALL },
+        where: { scope: LeaderboardScope.KNOCKOUT },
         include: { user: true },
         orderBy: [{ rankPosition: "asc" }],
         take: 10
       }),
       prisma.leaderboard.count({
         where: { scope: LeaderboardScope.OVERALL }
+      }),
+      prisma.leaderboard.count({
+        where: { scope: LeaderboardScope.KNOCKOUT }
       }),
       prisma.match.findMany({
         where: {
@@ -207,7 +219,7 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
           ? buildPlayerStatus({
               scope: LeaderboardScope.OVERALL,
               rankPosition: standings.rankPosition,
-              totalPlayers: Math.max(leaderboardCount, standings.rankPosition)
+              totalPlayers: Math.max(overallLeaderboardCount, standings.rankPosition)
             }).tier
           : PlayerTier.AVERAGE
       },
@@ -236,9 +248,9 @@ export async function getDashboardData(userId?: string | null): Promise<Dashboar
         username: row.user.username ?? "user",
         points: row.totalPoints,
         tier: buildPlayerStatus({
-          scope: LeaderboardScope.OVERALL,
+          scope: LeaderboardScope.KNOCKOUT,
           rankPosition: row.rankPosition,
-          totalPlayers: leaderboardCount
+          totalPlayers: knockoutLeaderboardCount
         }).tier
       })),
       upcomingMatches: matches.map((match) => ({

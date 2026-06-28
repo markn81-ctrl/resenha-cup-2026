@@ -26,7 +26,7 @@ export function TopTenPreview({
         <div>
           <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Preview TOP 10</p>
           <h2 className="mt-2 font-[family-name:var(--font-heading)] text-2xl font-bold">
-            Corrida pela ponta
+            Corrida pela ponta do Mata-Mata
           </h2>
         </div>
         <SmartNavLink
@@ -39,7 +39,7 @@ export function TopTenPreview({
 
       {!rows.length ? (
         <div className="mt-4 rounded-2xl border border-white/8 bg-white/5 px-4 py-5 text-sm text-slate-300">
-          O TOP 10 aparece assim que os primeiros palpites forem pontuados.
+          O TOP 10 do Mata-Mata aparece assim que os primeiros palpites forem pontuados.
         </div>
       ) : (
         <div className="mt-4 grid gap-2 lg:grid-cols-2">
