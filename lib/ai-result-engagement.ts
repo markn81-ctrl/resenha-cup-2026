@@ -3,10 +3,10 @@ import {
   FeedPostType,
   LeaderboardScope,
   NotificationType,
+  Phase,
   type CardsEdge,
   type CardsRange,
   type MatchResult,
-  type Phase,
   type Prediction,
   type PredictionOutcome,
   type Score
@@ -66,7 +66,7 @@ export async function publishResultFinalizedAiPost(matchId: string, actorId?: st
     };
   }
 
-  const [match, approvedUsers, baseCommentary] = await Promise.all([
+  const [match, approvedUsers] = await Promise.all([
     prisma.match.findUnique({
       where: { id: matchId },
       include: {
@@ -86,8 +86,7 @@ export async function publishResultFinalizedAiPost(matchId: string, actorId?: st
     prisma.user.findMany({
       where: { approvalStatus: ApprovalStatus.APPROVED },
       select: { id: true }
-    }),
-    buildAutomaticCommentary(LeaderboardScope.OVERALL)
+    })
   ]);
 
   if (!match?.result) {
@@ -97,6 +96,11 @@ export async function publishResultFinalizedAiPost(matchId: string, actorId?: st
     };
   }
 
+  const commentaryScope =
+    match.phase === Phase.GROUP_STAGE
+      ? LeaderboardScope.GROUP_STAGE
+      : LeaderboardScope.KNOCKOUT;
+  const baseCommentary = await buildAutomaticCommentary(commentaryScope);
   const title = matchTitle(match);
   const resultLine = `${title} terminou ${match.result.score.home} x ${match.result.score.away}`;
   const evaluated = match.predictions
@@ -137,7 +141,10 @@ export async function publishResultFinalizedAiPost(matchId: string, actorId?: st
   const commentary = {
     ...baseCommentary,
     headline: `Resultado aprovado: ${resultLine}`,
-    focus: "resultado recem-aprovado e impacto no ranking",
+    focus:
+      commentaryScope === LeaderboardScope.KNOCKOUT
+        ? "resultado recem-aprovado, Ranking Mata-Mata e disputa pelo pote"
+        : "resultado recem-aprovado e impacto no ranking",
     matchResults: [
       resultLine,
       ...(baseCommentary.matchResults ?? []).filter((item) => item !== resultLine)

@@ -83,12 +83,12 @@ async function buildDailyCommentaryInput(args: {
   };
 
   if (args.tournamentStatus === "in_progress") {
-    const commentary = await buildAutomaticCommentary(LeaderboardScope.OVERALL);
+    const commentary = await buildAutomaticCommentary(LeaderboardScope.KNOCKOUT);
 
     return {
       ...commentary,
       ...common,
-      focus: args.dailyTopic,
+      focus: `${args.dailyTopic} no Ranking Mata-Mata e na disputa pelo pote`,
       headline:
         commentary.matchResults?.length || commentary.rankingBattles?.length
           ? commentary.headline

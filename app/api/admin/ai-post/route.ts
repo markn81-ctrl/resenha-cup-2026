@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Payload invalido." }, { status: 400 });
     }
 
-    const scope = parsed.data.scope ?? LeaderboardScope.OVERALL;
+    const scope = parsed.data.scope ?? LeaderboardScope.KNOCKOUT;
     const commentary = await buildAutomaticCommentary(scope);
     const content = await generateAiCommentary(commentary);
     const approvedUsers = await prisma.user.findMany({

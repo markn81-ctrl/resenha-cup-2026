@@ -93,6 +93,8 @@ REGRAS IMPORTANTES
 - Quando houver jogos_atuais ou ultimos_palpites, priorize esse contexto para parecer conectado ao dia real do bolao
 - Pode comentar volume, atraso, pressao e clima dos palpites recentes, mas nao revele placares exatos de palpites de jogos ainda abertos/travados
 - Nao fale sempre do lider; quando possivel, traga disputa de posicoes, aproximacao, ultrapassagem ameacada ou tentativa de recuperacao
+- Se escopo for KNOCKOUT, trate o Ranking Mata-Mata e a disputa pelo pote como foco principal; mencione Ranking Geral apenas se o contexto pedir claramente
+- Em posts pos-resultado, comece pelo impacto do jogo recem-finalizado e mescle quem pontuou bem, quem dormiu no ponto, quem caiu ou quem encostou no Ranking Mata-Mata
 - Evite parecer comunicado oficial
 
 TAREFA

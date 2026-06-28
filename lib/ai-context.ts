@@ -1,4 +1,4 @@
-import { FeedPostType, LeaderboardScope, MatchStatus, type CardsEdge, type CardsRange, type MatchResult, type Phase, type Prediction, type PredictionOutcome, type Score } from "@prisma/client";
+import { FeedPostType, LeaderboardScope, MatchStatus, Phase, type CardsEdge, type CardsRange, type MatchResult, type Prediction, type PredictionOutcome, type Score } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { calculatePredictionScore } from "@/lib/scoring";
 import type { CommentaryInput } from "@/lib/ai";
@@ -150,6 +150,22 @@ function buildHeadline(args: {
   return "Rodada pegando fogo";
 }
 
+function getPhaseFilter(scope: LeaderboardScope) {
+  if (scope === LeaderboardScope.GROUP_STAGE) {
+    return { phase: Phase.GROUP_STAGE };
+  }
+
+  if (scope === LeaderboardScope.KNOCKOUT) {
+    return {
+      phase: {
+        not: Phase.GROUP_STAGE
+      }
+    };
+  }
+
+  return {};
+}
+
 export async function buildAutomaticCommentary(scope: LeaderboardScope = LeaderboardScope.OVERALL): Promise<CommentaryInput> {
   const dateKey = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
@@ -158,6 +174,7 @@ export async function buildAutomaticCommentary(scope: LeaderboardScope = Leaderb
     day: "2-digit"
   }).format(new Date());
   const now = new Date();
+  const phaseFilter = getPhaseFilter(scope);
   const [leaderboardRows, recentMatches, currentMatches, upcomingMatches, recentPredictions, recentAiPosts] = await Promise.all([
     prisma.leaderboard.findMany({
       where: { scope },
@@ -167,6 +184,7 @@ export async function buildAutomaticCommentary(scope: LeaderboardScope = Leaderb
     }),
     prisma.match.findMany({
       where: {
+        ...phaseFilter,
         status: MatchStatus.FINISHED,
         result: {
           isNot: null
@@ -190,6 +208,7 @@ export async function buildAutomaticCommentary(scope: LeaderboardScope = Leaderb
     }),
     prisma.match.findMany({
       where: {
+        ...phaseFilter,
         OR: [
           {
             startsAt: {
@@ -220,6 +239,7 @@ export async function buildAutomaticCommentary(scope: LeaderboardScope = Leaderb
     }),
     prisma.match.findMany({
       where: {
+        ...phaseFilter,
         status: { not: MatchStatus.FINISHED },
         lockAt: {
           gt: now
@@ -236,7 +256,8 @@ export async function buildAutomaticCommentary(scope: LeaderboardScope = Leaderb
       where: {
         updatedAt: {
           gte: new Date(now.getTime() - 24 * 60 * 60 * 1000)
-        }
+        },
+        match: phaseFilter
       },
       include: {
         user: true,
