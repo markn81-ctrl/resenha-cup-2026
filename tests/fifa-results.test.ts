@@ -116,6 +116,63 @@ assert.equal(knockoutResult.cards.edge, CardsEdge.HOME);
 assert.equal(knockoutResult.cards.range, CardsRange.ONE_TWO);
 assert.equal(knockoutResult.stages[0]?.usedForScoring, true);
 
+const penaltyShootoutFixture: FifaMatchDetails = {
+  ...fixture,
+  MatchNumber: 74,
+  MatchTime: "132'",
+  HomeTeam: {
+    ...fixture.HomeTeam!,
+    Score: 1,
+    Abbreviation: "GER",
+    Goals: [
+      { IdPlayer: "1", IdTeam: "43911", Minute: "54'", Period: 5, Type: 2 },
+      { IdPlayer: "2", IdTeam: "43911", Minute: "", Period: 11, Type: 1 },
+      { IdPlayer: "2", IdTeam: "43911", Minute: "", Period: 11, Type: 1 },
+      { IdPlayer: "2", IdTeam: "43911", Minute: "", Period: 11, Type: 1 }
+    ],
+    Bookings: [{ IdPlayer: "1", IdTeam: "43911", Minute: "106'", Period: 9, Card: 1 }]
+  },
+  AwayTeam: {
+    ...fixture.AwayTeam!,
+    Score: 1,
+    Abbreviation: "PAR",
+    Goals: [
+      { IdPlayer: "3", IdTeam: "43883", Minute: "42'", Period: 3, Type: 2 },
+      { IdPlayer: "3", IdTeam: "43883", Minute: "", Period: 11, Type: 1 },
+      { IdPlayer: "3", IdTeam: "43883", Minute: "", Period: 11, Type: 1 },
+      { IdPlayer: "3", IdTeam: "43883", Minute: "", Period: 11, Type: 1 },
+      { IdPlayer: "3", IdTeam: "43883", Minute: "", Period: 11, Type: 1 }
+    ],
+    Bookings: [{ IdPlayer: "3", IdTeam: "43883", Minute: "65'", Period: 5, Card: 1 }]
+  }
+};
+
+const penaltyShootoutResult = parseFifaMatchDetails(penaltyShootoutFixture, {
+  number: 74,
+  startsAt: new Date("2026-06-29T19:00:00Z"),
+  homeCode: "GER",
+  awayCode: "PAR",
+  phase: Phase.ROUND_OF_32
+});
+
+assert.deepEqual(penaltyShootoutResult.score, { home: 1, away: 1 });
+assert.deepEqual(penaltyShootoutResult.finalScore, { home: 1, away: 1 });
+assert.deepEqual(penaltyShootoutResult.scorers, ["Jogador Um", "Jogador Tres"]);
+assert.equal(penaltyShootoutResult.cards.homeYellow, 0);
+assert.equal(penaltyShootoutResult.cards.awayYellow, 1);
+assert.equal(penaltyShootoutResult.cards.edge, CardsEdge.AWAY);
+assert.equal(penaltyShootoutResult.cards.range, CardsRange.ONE_TWO);
+assert.ok(
+  penaltyShootoutResult.warnings.some((warning) =>
+    warning.includes("Houve gol fora do tempo regulamentar")
+  )
+);
+assert.ok(
+  !penaltyShootoutResult.warnings.some((warning) =>
+    warning.includes("gol sem minuto claro")
+  )
+);
+
 assert.throws(
   () =>
     parseFifaMatchDetails(fixture, {

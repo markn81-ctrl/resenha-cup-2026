@@ -37,6 +37,7 @@ type FifaGoal = {
   IdPlayer?: string | null;
   IdTeam?: string | null;
   Minute?: string | null;
+  Period?: number | null;
 };
 
 type FifaBooking = {
@@ -44,6 +45,7 @@ type FifaBooking = {
   IdPlayer?: string | null;
   IdTeam?: string | null;
   Minute?: string | null;
+  Period?: number | null;
 };
 
 type FifaTeamDetails = {
@@ -107,6 +109,7 @@ export type OfficialResultPreview = {
     player: string;
     teamCode: string;
     minute?: string | null;
+    period?: number | null;
     typeCode?: number | null;
   }>;
   cards: {
@@ -119,6 +122,7 @@ export type OfficialResultPreview = {
       player: string;
       teamCode: string;
       minute?: string | null;
+      period?: number | null;
       color: "YELLOW" | "RED" | "OTHER";
     }>;
   };
@@ -165,10 +169,16 @@ function regulationMinute(value?: string | null) {
   return Number(match[1]);
 }
 
-function isRegulationTimeEvent(value?: string | null) {
-  const minute = regulationMinute(value);
+const FIFA_REGULATION_PERIODS = new Set([3, 5]);
 
-  return minute === null || minute <= 90;
+function isRegulationTimeEvent(event: { minute?: string | null; period?: number | null }) {
+  if (event.period !== undefined && event.period !== null) {
+    return FIFA_REGULATION_PERIODS.has(event.period);
+  }
+
+  const minute = regulationMinute(event.minute);
+
+  return minute !== null && minute <= 90;
 }
 
 function scoreFromGoals(args: {
@@ -243,21 +253,23 @@ export function parseFifaMatchDetails(
     player: playerNames.get(goal.IdPlayer ?? "") ?? "Jogador nao identificado",
     teamCode: teamCodes.get(goal.IdTeam ?? "") ?? "N/A",
     minute: goal.Minute,
+    period: goal.Period,
     typeCode: goal.Type
   }));
   const allCardEvents = [...(home.Bookings ?? []), ...(away.Bookings ?? [])].map((booking) => ({
     player: playerNames.get(booking.IdPlayer ?? "") ?? "Jogador nao identificado",
     teamCode: teamCodes.get(booking.IdTeam ?? "") ?? "N/A",
     minute: booking.Minute,
+    period: booking.Period,
     color: bookingColor(booking.Card)
   }));
   const usesRegulationTime =
     expected.phase !== undefined && expected.phase !== Phase.GROUP_STAGE;
   const goals = usesRegulationTime
-    ? allGoals.filter((goal) => isRegulationTimeEvent(goal.minute))
+    ? allGoals.filter((goal) => isRegulationTimeEvent(goal))
     : allGoals;
   const cardEvents = usesRegulationTime
-    ? allCardEvents.filter((booking) => isRegulationTimeEvent(booking.minute))
+    ? allCardEvents.filter((booking) => isRegulationTimeEvent(booking))
     : allCardEvents;
   const homeYellow = cardEvents.filter(
     (booking) => booking.teamCode === homeCode && booking.color === "YELLOW"
@@ -286,23 +298,23 @@ export function parseFifaMatchDetails(
     );
   }
 
-  if (usesRegulationTime && allGoals.some((goal) => !isRegulationTimeEvent(goal.minute))) {
+  if (usesRegulationTime && allGoals.some((goal) => !isRegulationTimeEvent(goal))) {
     warnings.push(
       "Houve gol fora do tempo regulamentar. Para o bolao, o placar carregado considera apenas 90 minutos mais acrescimos."
     );
   }
 
-  if (usesRegulationTime && allCardEvents.some((card) => !isRegulationTimeEvent(card.minute))) {
+  if (usesRegulationTime && allCardEvents.some((card) => !isRegulationTimeEvent(card))) {
     warnings.push(
       "Houve cartao fora do tempo regulamentar. Para o bolao, esses cartoes nao entram na pontuacao."
     );
   }
 
-  if (allGoals.some((goal) => regulationMinute(goal.minute) === null)) {
+  if (goals.some((goal) => regulationMinute(goal.minute) === null)) {
     warnings.push("Existe evento de gol sem minuto claro. Confira a sumula antes de aprovar.");
   }
 
-  if (allCardEvents.some((card) => regulationMinute(card.minute) === null)) {
+  if (cardEvents.some((card) => regulationMinute(card.minute) === null)) {
     warnings.push("Existe evento de cartao sem minuto claro. Confira a sumula antes de aprovar.");
   }
 
