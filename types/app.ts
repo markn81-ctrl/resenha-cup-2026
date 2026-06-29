@@ -129,6 +129,12 @@ export type LeaderboardRowView = {
   movement: number;
   pointsToNext: number | null;
   tier: PlayerTier;
+  winnerStreakProgress?: {
+    current: number;
+    nextTarget: 3 | 5;
+    remaining: number;
+    nextBonus: 2 | 5;
+  } | null;
   featuredMatch?: {
     homeCountryCode?: string | null;
     awayCountryCode?: string | null;

@@ -2,6 +2,7 @@ import {
   ApprovalStatus,
   LeaderboardScope,
   MatchStatus,
+  Phase,
   PlayerTier,
   Role
 } from "@prisma/client";
@@ -10,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { getScopeForPhase } from "@/lib/ranking";
 import { getUserRivalry } from "@/lib/rivalries";
 import { getEffectiveMatchStatus } from "@/lib/locks";
+import { calculateStreakBonus, getStreakBonusRuleForMatch } from "@/lib/scoring";
 import type {
   AdminTeamRosterView,
   AdminView,
@@ -510,6 +512,77 @@ export async function getMatchPredictionData(
   }
 }
 
+function buildWinnerStreakProgress(current: number): NonNullable<LeaderboardRowView["winnerStreakProgress"]> {
+  const nextTarget = current >= 3 ? 5 : 3;
+
+  return {
+    current,
+    nextTarget,
+    remaining: Math.max(nextTarget - current, 0),
+    nextBonus: nextTarget === 3 ? 2 : 5
+  };
+}
+
+async function getWinnerStreakProgressByUserId(userIds: string[], scope: LeaderboardScope) {
+  const progress = new Map<string, NonNullable<LeaderboardRowView["winnerStreakProgress"]>>();
+
+  if (!userIds.length || scope !== LeaderboardScope.KNOCKOUT) {
+    return progress;
+  }
+
+  const streaks = new Map(userIds.map((userId) => [userId, 0]));
+  const matches = await prisma.match.findMany({
+    where: {
+      phase: { not: Phase.GROUP_STAGE },
+      status: MatchStatus.FINISHED,
+      result: { isNot: null }
+    },
+    select: {
+      number: true,
+      result: {
+        select: {
+          outcome: true
+        }
+      },
+      predictions: {
+        where: {
+          userId: { in: userIds }
+        },
+        select: {
+          userId: true,
+          outcome: true
+        }
+      }
+    },
+    orderBy: [{ startsAt: "asc" }, { number: "asc" }]
+  });
+
+  for (const match of matches) {
+    if (!match.result) {
+      continue;
+    }
+
+    const streakRule = getStreakBonusRuleForMatch(match.number);
+
+    for (const prediction of match.predictions) {
+      const streakBefore = streaks.get(prediction.userId) ?? 0;
+      const { streakAfter } = calculateStreakBonus({
+        winnerHit: prediction.outcome === match.result.outcome,
+        streakBefore,
+        rule: streakRule
+      });
+
+      streaks.set(prediction.userId, streakAfter);
+    }
+  }
+
+  for (const [userId, streak] of streaks) {
+    progress.set(userId, buildWinnerStreakProgress(streak));
+  }
+
+  return progress;
+}
+
 export async function getLeaderboardData(
   scope: LeaderboardScope = LeaderboardScope.OVERALL
 ): Promise<LeaderboardRowView[]> {
@@ -542,6 +615,7 @@ export async function getLeaderboardData(
     });
     const userIds = rows.map((row) => row.userId);
     const correctCardsByUserId = new Map<string, number>();
+    const streakProgressByUserId = await getWinnerStreakProgressByUserId(userIds, scope);
 
     if (userIds.length) {
       const evaluatedPredictions = await prisma.prediction.findMany({
@@ -607,6 +681,7 @@ export async function getLeaderboardData(
         rankPosition: row.rankPosition,
         totalPlayers: rows.length
       }).tier,
+      winnerStreakProgress: streakProgressByUserId.get(row.userId) ?? null,
       featuredMatch: row.user.predictions[0]
         ? {
             homeCountryCode: row.user.predictions[0].match.homeTeam?.countryCode,

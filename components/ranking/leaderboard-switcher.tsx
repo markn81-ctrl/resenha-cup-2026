@@ -111,6 +111,7 @@ export function LeaderboardSwitcher({
         rows={activeRows}
         highlightUserId={highlightUserId}
         emptyMessage={activeMeta.emptyMessage}
+        showStreakProgress={activeRanking === "knockout"}
       />
     </section>
   );

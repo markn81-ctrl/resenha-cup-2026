@@ -8,12 +8,16 @@ import { formatPoints, formatRankPosition } from "@/lib/utils";
 export function LeaderboardTable({
   rows,
   highlightUserId,
-  emptyMessage = "Ranking limpo por enquanto. Quando os primeiros palpites forem pontuados, a briga pela ponta aparece aqui."
+  emptyMessage = "Ranking limpo por enquanto. Quando os primeiros palpites forem pontuados, a briga pela ponta aparece aqui.",
+  showStreakProgress = false
 }: {
   rows: LeaderboardRowView[];
   highlightUserId?: string | null;
   emptyMessage?: string;
+  showStreakProgress?: boolean;
 }) {
+  const emptyColSpan = showStreakProgress ? 8 : 7;
+
   return (
     <Panel className="overflow-hidden p-0">
       <div className="space-y-3 p-3 md:hidden">
@@ -103,6 +107,10 @@ export function LeaderboardTable({
                 </p>
               </div>
             </div>
+
+            {showStreakProgress ? (
+              <WinnerStreakProgress progress={row.winnerStreakProgress} className="mt-3" />
+            ) : null}
           </div>
         ))}
       </div>
@@ -116,6 +124,7 @@ export function LeaderboardTable({
               <th className="px-5 py-4">Pontos</th>
               <th className="px-5 py-4">Placar exato</th>
               <th className="px-5 py-4">Vencedores</th>
+              {showStreakProgress ? <th className="px-5 py-4">Sequencia</th> : null}
               <th className="px-5 py-4">Artilheiros</th>
               <th className="px-5 py-4">Cartões</th>
             </tr>
@@ -123,7 +132,7 @@ export function LeaderboardTable({
           <tbody>
             {!rows.length ? (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-sm text-slate-400">
+                <td colSpan={emptyColSpan} className="px-5 py-10 text-center text-sm text-slate-400">
                   {emptyMessage}
                 </td>
               </tr>
@@ -182,6 +191,11 @@ export function LeaderboardTable({
                 </td>
                 <td className="px-5 py-4">{row.exactScores}</td>
                 <td className="px-5 py-4">{row.correctWinners}</td>
+                {showStreakProgress ? (
+                  <td className="px-5 py-4">
+                    <WinnerStreakProgress progress={row.winnerStreakProgress} compact />
+                  </td>
+                ) : null}
                 <td className="px-5 py-4">{row.correctScorers}</td>
                 <td className="px-5 py-4">{row.correctCards}</td>
               </tr>
@@ -190,5 +204,49 @@ export function LeaderboardTable({
         </table>
       </div>
     </Panel>
+  );
+}
+
+function WinnerStreakProgress({
+  progress,
+  compact = false,
+  className
+}: {
+  progress?: LeaderboardRowView["winnerStreakProgress"];
+  compact?: boolean;
+  className?: string;
+}) {
+  if (!progress) {
+    return (
+      <div className={className}>
+        <span className="rounded-full bg-white/5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+          Sem sequencia
+        </span>
+      </div>
+    );
+  }
+
+  const remainingLabel =
+    progress.remaining === 1
+      ? "falta 1 acerto"
+      : `faltam ${progress.remaining} acertos`;
+
+  return (
+    <div
+      className={
+        compact
+          ? className
+          : `rounded-2xl border border-brand-300/15 bg-brand-400/10 p-3 ${className ?? ""}`
+      }
+    >
+      <div className={compact ? "space-y-1" : "flex items-center justify-between gap-3"}>
+        <p className="text-sm font-bold text-brand-100">
+          Seq. {progress.current}/{progress.nextTarget}
+        </p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+          {remainingLabel} para +{progress.nextBonus}
+        </p>
+      </div>
+    </div>
   );
 }
