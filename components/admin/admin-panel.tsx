@@ -13,7 +13,7 @@ import { Panel } from "@/components/ui/panel";
 import { Flag } from "@/components/ui/flag";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { phaseLabels } from "@/lib/constants";
-import { formatLongDate, formatPoints, relativeTime } from "@/lib/utils";
+import { formatLongDate, formatPoints, formatRankPosition, relativeTime } from "@/lib/utils";
 
 const cardsEdges = [
   { value: CardsEdge.HOME, label: "Time A" },
@@ -978,7 +978,7 @@ export function AdminPanel({ data }: { data: AdminView }) {
                     >
                       <div>
                         <p className="font-semibold">
-                          #{row.projectedPosition} {row.name}
+                          {formatRankPosition(row.projectedPosition)} {row.name}
                         </p>
                         <p className="text-sm text-slate-400">@{row.username}</p>
                       </div>

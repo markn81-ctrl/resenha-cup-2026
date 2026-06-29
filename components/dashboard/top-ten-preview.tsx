@@ -3,7 +3,7 @@ import { PlayerTier } from "@prisma/client";
 import { SmartNavLink } from "@/components/layout/smart-nav-link";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Panel } from "@/components/ui/panel";
-import { cn, formatPoints } from "@/lib/utils";
+import { cn, formatPoints, formatRankPosition } from "@/lib/utils";
 
 type TopTenRow = {
   id: string;
@@ -67,7 +67,7 @@ export function TopTenPreview({
                       : "bg-slate-950/45 text-slate-200"
                   )}
                 >
-                  {index === 0 ? <Crown className="h-5 w-5" /> : `#${index + 1}`}
+                  {index === 0 ? <Crown className="h-5 w-5" /> : formatRankPosition(index + 1)}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">

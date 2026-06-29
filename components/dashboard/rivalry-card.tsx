@@ -2,7 +2,7 @@ import Image from "next/image";
 import { Swords, Target } from "lucide-react";
 import { LeaderboardScope } from "@prisma/client";
 import { Panel } from "@/components/ui/panel";
-import { formatPoints, getAvatarFallback } from "@/lib/utils";
+import { formatPoints, formatRankPosition, getAvatarFallback } from "@/lib/utils";
 
 const scopeLabel: Record<LeaderboardScope, string> = {
   OVERALL: "Geral",
@@ -80,7 +80,7 @@ export function RivalryCard({
         <div className="rounded-2xl bg-white/5 p-4">
           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Posicao dele</p>
           <p className="mt-2 font-[family-name:var(--font-heading)] text-3xl font-bold">
-            #{rivalry.position}
+            {formatRankPosition(rivalry.position)}
           </p>
         </div>
         <div className="rounded-2xl bg-white/5 p-4">

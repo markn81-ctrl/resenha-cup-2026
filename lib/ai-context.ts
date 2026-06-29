@@ -1,6 +1,7 @@
 import { FeedPostType, LeaderboardScope, MatchStatus, Phase, type CardsEdge, type CardsRange, type MatchResult, type Prediction, type PredictionOutcome, type Score } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { calculatePredictionScore } from "@/lib/scoring";
+import { formatRankPosition } from "@/lib/utils";
 import type { CommentaryInput } from "@/lib/ai";
 
 type ScoreWithScore = Pick<Prediction, "outcome" | "cardsEdge" | "cardsRange" | "scorers"> & {
@@ -36,8 +37,8 @@ function buildRankingBattles(
         gap,
         label:
           gap === 0
-            ? `${displayName(row)} tem os mesmos pontos de ${displayName(previous)} na briga #${previous.rankPosition} x #${row.rankPosition}`
-            : `${displayName(row)} esta a ${gap} ponto(s) de ${displayName(previous)} na briga #${previous.rankPosition} x #${row.rankPosition}`
+            ? `${displayName(row)} tem os mesmos pontos de ${displayName(previous)} na briga ${formatRankPosition(previous.rankPosition)} x ${formatRankPosition(row.rankPosition)}`
+            : `${displayName(row)} esta a ${gap} ponto(s) de ${displayName(previous)} na briga ${formatRankPosition(previous.rankPosition)} x ${formatRankPosition(row.rankPosition)}`
       };
     })
     .filter((item) => item.gap >= 0 && item.gap <= 12)
@@ -59,8 +60,8 @@ function buildBottomWatch(
     const previous = bottomRows[index - 1] ?? rows[row.rankPosition - 2];
     const gap = previous ? previous.totalPoints - row.totalPoints : 0;
     return gap > 0
-      ? `${displayName(row)} esta em #${row.rankPosition}, a ${gap} ponto(s) de encostar em ${displayName(previous)}`
-      : `${displayName(row)} esta em #${row.rankPosition} com ${row.totalPoints} ponto(s) e precisa de uma rodada de reacao`;
+      ? `${displayName(row)} esta em ${formatRankPosition(row.rankPosition)}, a ${gap} ponto(s) de encostar em ${displayName(previous)}`
+      : `${displayName(row)} esta em ${formatRankPosition(row.rankPosition)} com ${row.totalPoints} ponto(s) e precisa de uma rodada de reacao`;
   });
 }
 

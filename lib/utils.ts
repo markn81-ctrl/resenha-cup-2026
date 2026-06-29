@@ -36,6 +36,10 @@ export function formatPoints(value: number) {
   }).format(value);
 }
 
+export function formatRankPosition(position?: number | null) {
+  return position ? `${position}º` : "-";
+}
+
 export function getDisplayName(args: {
   name?: string | null;
   email?: string | null;

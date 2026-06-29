@@ -3,7 +3,7 @@ import type { LeaderboardRowView } from "@/types/app";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Flag } from "@/components/ui/flag";
 import { Panel } from "@/components/ui/panel";
-import { formatPoints } from "@/lib/utils";
+import { formatPoints, formatRankPosition } from "@/lib/utils";
 
 export function LeaderboardTable({
   rows,
@@ -34,7 +34,7 @@ export function LeaderboardTable({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 font-semibold">
-                  #{row.rankPosition}
+                  {formatRankPosition(row.rankPosition)}
                   {row.movement > 0 ? (
                     <ArrowUp className="h-4 w-4 text-emerald-300" />
                   ) : row.movement < 0 ? (
@@ -139,7 +139,7 @@ export function LeaderboardTable({
               >
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-2 font-semibold">
-                    #{row.rankPosition}
+                    {formatRankPosition(row.rankPosition)}
                     {row.movement > 0 ? (
                       <ArrowUp className="h-4 w-4 text-emerald-300" />
                     ) : row.movement < 0 ? (

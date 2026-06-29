@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Role } from "@prisma/client";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { getAvatarFallback, formatPoints, relativeTime } from "@/lib/utils";
+import { getAvatarFallback, formatPoints, formatRankPosition, relativeTime } from "@/lib/utils";
 import type { PalpiteiroView } from "@/types/app";
 
 export function PalpiteirosList({
@@ -72,7 +72,7 @@ export function PalpiteirosList({
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <StatusBadge tier={player.tier} />
             <span className="rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-slate-200">
-              {player.rankPosition ? `#${player.rankPosition}` : "Sem ranking"}
+              {player.rankPosition ? formatRankPosition(player.rankPosition) : "Sem ranking"}
             </span>
             <span className="rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-slate-200">
               {formatPoints(player.points)} pts
