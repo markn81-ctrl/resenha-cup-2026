@@ -1,6 +1,7 @@
 import {
   LeaderboardScope,
   MatchStatus,
+  Phase,
   Prisma,
   type CardsEdge,
   type CardsRange
@@ -115,7 +116,8 @@ async function rebuildRankings(tx: Prisma.TransactionClient) {
     tx.leaderboard.findMany()
   ]);
 
-  const streaks = new Map<string, number>();
+  const groupStageStreaks = new Map<string, number>();
+  const knockoutStreaks = new Map<string, number>();
   let cycleRuleStarted = false;
   const evaluated: EvaluatedPrediction[] = [];
   const predictionUpdates: PredictionUpdate[] = [];
@@ -126,12 +128,18 @@ async function rebuildRankings(tx: Prisma.TransactionClient) {
       continue;
     }
 
-    if (getStreakBonusRuleForMatch(match.number) === "CYCLE_RESET" && !cycleRuleStarted) {
-      streaks.clear();
+    if (
+      match.phase === Phase.GROUP_STAGE &&
+      getStreakBonusRuleForMatch(match.number) === "CYCLE_RESET" &&
+      !cycleRuleStarted
+    ) {
+      groupStageStreaks.clear();
       cycleRuleStarted = true;
     }
 
     const streakRule = getStreakBonusRuleForMatch(match.number);
+    const streaks =
+      match.phase === Phase.GROUP_STAGE ? groupStageStreaks : knockoutStreaks;
 
     for (const prediction of match.predictions) {
       const streakBefore = streaks.get(prediction.userId) ?? 0;

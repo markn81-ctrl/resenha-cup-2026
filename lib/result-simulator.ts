@@ -1,4 +1,4 @@
-import { LeaderboardScope, MatchStatus, type CardsEdge, type CardsRange } from "@prisma/client";
+import { LeaderboardScope, MatchStatus, Phase, type CardsEdge, type CardsRange } from "@prisma/client";
 import {
   calculatePredictionScore,
   calculateStreakBonus,
@@ -24,6 +24,7 @@ async function getStreakMap(args: {
   userIds: string[];
   startsAt: Date;
   matchNumber: number;
+  phase: Phase;
 }) {
   const streaks = new Map<string, number>();
 
@@ -37,7 +38,16 @@ async function getStreakMap(args: {
       status: MatchStatus.FINISHED,
       startsAt: { lt: args.startsAt },
       result: { isNot: null },
-      ...(targetRule === "CYCLE_RESET"
+      ...(args.phase === Phase.GROUP_STAGE
+        ? {
+            phase: Phase.GROUP_STAGE
+          }
+        : {
+            phase: {
+              not: Phase.GROUP_STAGE
+            }
+          }),
+      ...(args.phase === Phase.GROUP_STAGE && targetRule === "CYCLE_RESET"
         ? {
             number: {
               gte: 48
@@ -130,7 +140,8 @@ export async function simulateMatchResult(
   const streakMap = await getStreakMap({
     userIds,
     startsAt: match.startsAt,
-    matchNumber: match.number
+    matchNumber: match.number,
+    phase: match.phase
   });
   const streakRule = getStreakBonusRuleForMatch(match.number);
 
