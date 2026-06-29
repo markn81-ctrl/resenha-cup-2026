@@ -42,7 +42,7 @@ export function AppShell({
   return (
     <div className="mx-auto min-h-screen w-full max-w-7xl px-3 pb-24 pt-3 sm:px-6 sm:pb-28 sm:pt-6 lg:px-8">
       <header className="mb-4 flex flex-col gap-3 sm:mb-6 sm:gap-4">
-        <div className="glass flex flex-col gap-4 rounded-[24px] px-4 py-4 sm:rounded-[28px] sm:px-5 sm:py-5 xl:flex-row xl:items-center xl:justify-between">
+        <div className="glass grid grid-cols-1 gap-4 rounded-[24px] px-4 py-4 sm:rounded-[28px] sm:px-5 sm:py-5 xl:grid-cols-[minmax(230px,0.9fr)_minmax(280px,1.4fr)_minmax(320px,auto)_auto] xl:items-center">
           <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <div className="shrink-0">
               {user?.image ? (
@@ -81,7 +81,7 @@ export function AppShell({
             </div>
           </div>
 
-          <div className="min-w-0 flex-1 xl:px-4">
+          <div className="min-w-0 xl:px-2">
             <p className="text-[11px] uppercase tracking-[0.24em] text-brand-200 sm:text-xs sm:tracking-[0.28em]">Resenha Cup 2026</p>
             <h1 className="mt-1 font-[family-name:var(--font-heading)] text-2xl font-bold leading-tight sm:text-3xl">
               {title}
@@ -93,14 +93,14 @@ export function AppShell({
           </div>
 
           {standing ? (
-            <div className="grid shrink-0 grid-cols-2 gap-2 sm:min-w-[290px]">
+            <div className="grid shrink-0 grid-cols-2 gap-2 sm:min-w-[290px] xl:w-[340px]">
               <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">
                   Posicao Mata-Mata
                 </p>
                 <div className="mt-1 flex items-center gap-2">
                   <p className="font-[family-name:var(--font-heading)] text-3xl font-bold">
-                    #{standing.position || "-"}
+                    {standing.position || "-"}
                   </p>
                   <span className="flex items-center gap-1 text-xs text-slate-300">
                     {standing.movement > 0 ? (
@@ -119,7 +119,7 @@ export function AppShell({
                 </div>
               </div>
               <div className="rounded-[18px] border border-brand-300/20 bg-brand-400/10 px-4 py-3">
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <p className="text-[10px] uppercase tracking-[0.18em] text-brand-100">
                     Pontuacao Mata-Mata
                   </p>
