@@ -53,14 +53,7 @@ async function getStreakMap(args: {
               gte: 48
             }
           }
-        : {}),
-      predictions: {
-        some: {
-          userId: {
-            in: args.userIds
-          }
-        }
-      }
+        : {})
     },
     include: {
       result: true,
@@ -86,12 +79,21 @@ async function getStreakMap(args: {
       continue;
     }
 
-    for (const prediction of match.predictions) {
-      const current = streaks.get(prediction.userId) ?? 0;
+    const predictionsByUserId = new Map(
+      match.predictions.map((prediction) => [prediction.userId, prediction])
+    );
+    const streakUserIds =
+      args.phase === Phase.GROUP_STAGE
+        ? match.predictions.map((prediction) => prediction.userId)
+        : args.userIds;
+
+    for (const userId of streakUserIds) {
+      const prediction = predictionsByUserId.get(userId);
+      const current = streaks.get(userId) ?? 0;
       streaks.set(
-        prediction.userId,
+        userId,
         calculateStreakBonus({
-          winnerHit: prediction.outcome === outcome,
+          winnerHit: prediction ? prediction.outcome === outcome : false,
           streakBefore: current,
           rule: getStreakBonusRuleForMatch(match.number)
         }).streakAfter

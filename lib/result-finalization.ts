@@ -1,4 +1,5 @@
 import {
+  ApprovalStatus,
   LeaderboardScope,
   MatchStatus,
   Phase,
@@ -93,7 +94,7 @@ function resultMatchesInput(
 }
 
 async function rebuildRankings(tx: Prisma.TransactionClient) {
-  const [finishedMatches, previousRows] = await Promise.all([
+  const [finishedMatches, previousRows, approvedUsers] = await Promise.all([
     tx.match.findMany({
       where: {
         status: MatchStatus.FINISHED,
@@ -113,9 +114,14 @@ async function rebuildRankings(tx: Prisma.TransactionClient) {
       },
       orderBy: [{ startsAt: "asc" }, { number: "asc" }]
     }),
-    tx.leaderboard.findMany()
+    tx.leaderboard.findMany(),
+    tx.user.findMany({
+      where: { approvalStatus: ApprovalStatus.APPROVED },
+      select: { id: true }
+    })
   ]);
 
+  const approvedUserIds = approvedUsers.map((user) => user.id);
   const groupStageStreaks = new Map<string, number>();
   const knockoutStreaks = new Map<string, number>();
   let cycleRuleStarted = false;
@@ -140,6 +146,17 @@ async function rebuildRankings(tx: Prisma.TransactionClient) {
     const streakRule = getStreakBonusRuleForMatch(match.number);
     const streaks =
       match.phase === Phase.GROUP_STAGE ? groupStageStreaks : knockoutStreaks;
+    const predictionsByUserId = new Map(
+      match.predictions.map((prediction) => [prediction.userId, prediction])
+    );
+
+    if (match.phase !== Phase.GROUP_STAGE) {
+      for (const userId of approvedUserIds) {
+        if (!predictionsByUserId.has(userId)) {
+          streaks.set(userId, 0);
+        }
+      }
+    }
 
     for (const prediction of match.predictions) {
       const streakBefore = streaks.get(prediction.userId) ?? 0;

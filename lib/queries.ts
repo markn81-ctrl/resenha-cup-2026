@@ -563,16 +563,20 @@ async function getWinnerStreakProgressByUserId(userIds: string[], scope: Leaderb
     }
 
     const streakRule = getStreakBonusRuleForMatch(match.number);
+    const predictionsByUserId = new Map(
+      match.predictions.map((prediction) => [prediction.userId, prediction])
+    );
 
-    for (const prediction of match.predictions) {
-      const streakBefore = streaks.get(prediction.userId) ?? 0;
+    for (const userId of userIds) {
+      const prediction = predictionsByUserId.get(userId);
+      const streakBefore = streaks.get(userId) ?? 0;
       const { streakAfter } = calculateStreakBonus({
-        winnerHit: prediction.outcome === match.result.outcome,
+        winnerHit: prediction ? prediction.outcome === match.result.outcome : false,
         streakBefore,
         rule: streakRule
       });
 
-      streaks.set(prediction.userId, streakAfter);
+      streaks.set(userId, streakAfter);
     }
   }
 
