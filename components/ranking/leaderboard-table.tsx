@@ -9,11 +9,13 @@ export function LeaderboardTable({
   rows,
   highlightUserId,
   emptyMessage = "Ranking limpo por enquanto. Quando os primeiros palpites forem pontuados, a briga pela ponta aparece aqui.",
+  showPrizeBadges = false,
   showStreakProgress = false
 }: {
   rows: LeaderboardRowView[];
   highlightUserId?: string | null;
   emptyMessage?: string;
+  showPrizeBadges?: boolean;
   showStreakProgress?: boolean;
 }) {
   const emptyColSpan = showStreakProgress ? 8 : 7;
@@ -47,6 +49,7 @@ export function LeaderboardTable({
                     <ArrowRight className="h-4 w-4 text-slate-400" />
                   )}
                 </div>
+                {showPrizeBadges ? <PrizeBadge position={row.rankPosition} className="mt-2" /> : null}
                 <p className="mt-2 truncate font-semibold">{row.name}</p>
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
                   @{row.username}
@@ -147,15 +150,18 @@ export function LeaderboardTable({
                 }
               >
                 <td className="px-5 py-4">
-                  <div className="flex items-center gap-2 font-semibold">
-                    {formatRankPosition(row.rankPosition)}
-                    {row.movement > 0 ? (
-                      <ArrowUp className="h-4 w-4 text-emerald-300" />
-                    ) : row.movement < 0 ? (
-                      <ArrowDown className="h-4 w-4 text-rose-300" />
-                    ) : (
-                      <ArrowRight className="h-4 w-4 text-slate-400" />
-                    )}
+                  <div className="flex flex-wrap items-center gap-2 font-semibold">
+                    <span>{formatRankPosition(row.rankPosition)}</span>
+                    {showPrizeBadges ? <PrizeBadge position={row.rankPosition} /> : null}
+                    <span>
+                      {row.movement > 0 ? (
+                        <ArrowUp className="h-4 w-4 text-emerald-300" />
+                      ) : row.movement < 0 ? (
+                        <ArrowDown className="h-4 w-4 text-rose-300" />
+                      ) : (
+                        <ArrowRight className="h-4 w-4 text-slate-400" />
+                      )}
+                    </span>
                   </div>
                 </td>
                 <td className="px-5 py-4">
@@ -204,6 +210,49 @@ export function LeaderboardTable({
         </table>
       </div>
     </Panel>
+  );
+}
+
+const prizeBadges: Record<
+  number,
+  {
+    label: string;
+    className: string;
+  }
+> = {
+  1: {
+    label: "Ouro",
+    className: "border-amber-300/40 bg-amber-300/15 text-amber-100"
+  },
+  2: {
+    label: "Prata",
+    className: "border-slate-200/35 bg-slate-200/12 text-slate-100"
+  },
+  3: {
+    label: "Bronze",
+    className: "border-orange-300/35 bg-orange-300/12 text-orange-100"
+  }
+};
+
+function PrizeBadge({
+  position,
+  className
+}: {
+  position: number;
+  className?: string;
+}) {
+  const badge = prizeBadges[position];
+
+  if (!badge) {
+    return null;
+  }
+
+  return (
+    <span
+      className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${badge.className} ${className ?? ""}`}
+    >
+      {badge.label}
+    </span>
   );
 }
 
